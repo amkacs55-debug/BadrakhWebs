@@ -70,3 +70,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Failed to create product" }, { status: 500 });
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json({ error: "ID олдсонгүй" }, { status: 400 });
+    }
+
+    await db.delete(products).where(eq(products.id, Number(id)));
+
+    return NextResponse.json({ success: true, message: "Амжилттай устгагдлаа" }, { status: 200 });
+  } catch (error) {
+    console.error("DELETE /api/products error:", error);
+    return NextResponse.json({ error: "Устгахад алдаа гарлаа" }, { status: 500 });
+  }
+}
