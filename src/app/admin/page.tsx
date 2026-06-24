@@ -15,6 +15,12 @@ interface Product {
 }
 
 export default function AdminPage() {
+  // Нэвтрэх хэсгийн State-үүд
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
+
   const [products, setProducts] = useState<Product[]>([]);
   const [title, setTitle] = useState("");
   const [gameId, setGameId] = useState("");
@@ -29,7 +35,28 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // 1. Баазаас заруудаа дуудаж ирэх функц
+  useEffect(() => {
+    // Хуудсыг refresh хийх үед нэвтэрсэн эсэхийг шалгах
+    const auth = sessionStorage.getItem("isAdminLoggedIn");
+    if (auth === "true") {
+      setIsLoggedIn(true);
+      fetchProducts();
+    }
+  }, []);
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    // ⚠️ АНХААР: Нэвтрэх нэр болон нууц үгээ энд өөрийнхөөрөө солиорой!
+    if (username === "ADMIN_USERNAME" && password === "ADMIN_PASSWORD") {
+      sessionStorage.setItem("isAdminLoggedIn", "true");
+      setIsLoggedIn(true);
+      setLoginError("");
+      fetchProducts();
+    } else {
+      setLoginError("Нэвтрэх нэр эсвэл нууц үг буруу байна.");
+    }
+  };
+
   const fetchProducts = async () => {
     try {
       const res = await fetch("/api/products");
@@ -42,11 +69,6 @@ export default function AdminPage() {
     }
   };
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  // 2. Cloudinary руу 40 зураг байсан ч зэрэг шааж хуулдаг функц
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
     setUploading(true);
@@ -58,9 +80,6 @@ export default function AdminPage() {
       const uploadPromises = files.map(async (file) => {
         const formData = new FormData();
         formData.append("file", file);
-        
-        // ⚠️ Cloudinary дээр үүсгэсэн Unsigned Preset нэрээ энд бичнэ.
-        // Хэрэв чи "pubg_preset" биш өөр нэр өгсөн бол түүнийгээ сольж бичээрэй!
         formData.append("upload_preset", "pubg_preset"); 
 
         const res = await fetch("https://api.cloudinary.com/v1_1/drxjlkcdq/image/upload", {
@@ -86,12 +105,10 @@ export default function AdminPage() {
     }
   };
 
-  // Зургийг жагсаалтаас хасах (Нийтлэхээс өмнө голлуулах)
   const removeImage = (indexToRemove: number) => {
     setImages((prev) => prev.filter((_, index) => index !== indexToRemove));
   };
 
-  // 3. Шинэ зар нийтлэх (POST)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -117,7 +134,6 @@ export default function AdminPage() {
 
       if (!res.ok) throw new Error("Сервер рүү зар хадгалж чадсангүй");
 
-      // Формыг цэвэрлэх
       setTitle("");
       setGameId("");
       setBasePrice("");
@@ -125,7 +141,7 @@ export default function AdminPage() {
       setTagsInput("");
       setImages([]);
       
-      fetchProducts(); // Жагсаалтыг шинэчлэх
+      fetchProducts(); 
       alert("Зар амжилттай нийтлэгдлээ!");
     } catch (err) {
       setError("Зар нэмэхэд алдаа гарлаа. Сервер хариу өгсөнгүй.");
@@ -135,7 +151,6 @@ export default function AdminPage() {
     }
   };
 
-  // 4. Зар баазаас устгах (DELETE)
   const handleDelete = async (id: number) => {
     if (!confirm("Энэ зарыг устгахдаа итгэлтэй байна уу?")) return;
 
@@ -146,7 +161,7 @@ export default function AdminPage() {
 
       if (!res.ok) throw new Error("Устгаж чадсангүй");
 
-      fetchProducts(); // Жагсаалтыг шинэчлэх
+      fetchProducts(); 
       alert("Амжилттай устгагдлаа!");
     } catch (err) {
       alert("Устгаж чадсангүй, сервер дээр алдаа гарлаа.");
@@ -154,10 +169,48 @@ export default function AdminPage() {
     }
   };
 
+  const handleLogout = () => {
+    sessionStorage.removeItem("isAdminLoggedIn");
+    setIsLoggedIn(false);
+  };
+
+  // Хэрэв нэвтрээгүй бол Login формыг харуулна
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
+        <form onSubmit={handleLogin} className="bg-gray-900 p-8 rounded-2xl border border-gray-800 w-full max-w-md space-y-6 shadow-2xl">
+          <h2 className="text-2xl font-bold text-white text-center">Админ Нэвтрэх</h2>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Нэвтрэх нэр</label>
+            <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500" required autoFocus />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Нууц үг</label>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500" required />
+          </div>
+
+          {loginError && <p className="text-red-500 text-sm text-center">{loginError}</p>}
+
+          <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition duration-200">
+            Нэвтрэх
+          </button>
+        </form>
+      </div>
+    );
+  }
+
+  // Нэвтэрсэн үед харагдах Админ хэсэг
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100 p-6">
-      <div className="max-w-4xl mx-auto space-y-8">
-        <h1 className="text-2xl font-bold border-b border-gray-800 pb-4">Хянах самбар</h1>
+    <div className="min-h-screen bg-gray-950 text-gray-100 p-4 md:p-6">
+      <div className="max-w-5xl mx-auto space-y-8">
+        <div className="flex justify-between items-center border-b border-gray-800 pb-4">
+          <h1 className="text-2xl font-bold">Хянах самбар</h1>
+          <button onClick={handleLogout} className="text-sm bg-red-900/30 hover:bg-red-900/50 text-red-400 px-4 py-2 rounded-lg border border-red-900/50 transition">
+            Гарах
+          </button>
+        </div>
 
         {/* Зар нэмэх форм */}
         <form onSubmit={handleSubmit} className="bg-gray-900 p-6 rounded-xl border border-gray-800 space-y-4">
@@ -214,7 +267,6 @@ export default function AdminPage() {
                 <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" disabled={uploading} />
               </label>
 
-              {/* Сонгогдсон зургуудыг харуулах */}
               {images.map((url, idx) => (
                 <div key={idx} className="relative w-24 h-24 rounded-xl overflow-hidden border border-gray-800">
                   <img src={url} alt="Uploaded" className="w-full h-full object-cover" />
@@ -236,9 +288,9 @@ export default function AdminPage() {
           </div>
         </form>
 
-        {/* Заруудын жагсаалт ба Устгах хэсэг */}
-        <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
-          <table className="w-full text-left border-collapse">
+        {/* Заруудын жагсаалт ба Устгах хэсэг - УТАСАН ДЭЭР ГҮЙЛГЭЖ ХАРАХААР ЗАСАВ */}
+        <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-[600px]">
             <thead>
               <tr className="bg-gray-800/50 text-gray-400 text-sm border-b border-gray-800">
                 <th className="p-4">ЗАР</th>
