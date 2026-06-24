@@ -69,8 +69,9 @@ export default function AdminPage() {
       }
     } catch (err) {
       console.error(err);
-    } file
-    setLoading(false);
+    } finally {
+      setLoading(false);
+    }
   }
 
   const handleLogin = (e: React.FormEvent) => {
@@ -151,10 +152,9 @@ export default function AdminPage() {
     }
   };
 
-  // 🚀 УСТГАХ ҮЙЛДЛИЙГ БАТАЛГААТАЙ БОЛГОЖ ЗАССАН ХЭСЭГ
   const handleDelete = async (e: React.MouseEvent, id: any) => {
     e.preventDefault();
-    e.stopPropagation(); // Дээшээ event дамжихаас сэргийлнэ
+    e.stopPropagation();
 
     if (!confirm("Энэ зарыг устгахдаа итгэлтэй байна уу?")) return;
     
@@ -165,16 +165,15 @@ export default function AdminPage() {
       });
 
       if (res.ok) {
-        // Дэлгэц дээрх жагсаалтаас шууд хасна
         setProducts((prev) => prev.filter((p) => p.id !== id));
         alert("Зарыг амжилттай устгалаа!");
       } else {
         const errorData = await res.json().catch(() => ({}));
-        alert(`Устгаж чадсангүй: ${errorData.message || "Серверийн алдаа эсвэл ID олдсонгүй."}`);
+        alert(`Устгаж чадсангүй: ${errorData.message || "Алдаа гарлаа."}`);
       }
     } catch (err) {
       console.error(err);
-      alert("Сүлжээний алдаа гарлаа. Дахин оролдоно уу.");
+      alert("Сүлжээний алдаа гарлаа.");
     } finally {
       setDeleteLoading(null);
     }
@@ -362,7 +361,6 @@ export default function AdminPage() {
                         {new Intl.NumberFormat("mn-MN").format(product.basePrice)} ₮
                       </td>
                       <td className="px-5 py-3.5 text-right">
-                        {/* 🚀 БАТАЛГААТАЙ ТОГТООГЧ ТӨРӨЛТЭЙ ТОВЧ */}
                         <button 
                           type="button"
                           onClick={(e) => handleDelete(e, product.id)} 
@@ -383,4 +381,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
