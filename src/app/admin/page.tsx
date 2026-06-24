@@ -18,7 +18,6 @@ import {
 
 const ADMIN_PASSWORD = "admin123";
 
-// Админаас сонгох төрлүүд
 const categoryOptions = [
   { value: "admin_acc", label: "Admin Acc" },
   { value: "paid_post", label: "Төлбөртэй post" },
@@ -85,13 +84,33 @@ export default function AdminPage() {
     }
   };
 
+  // 🚀 ЖИНХЭНЭ ЗУРГИЙГ УНШИЖ ХУУЛДАГ БОЛГОЖ ЗАССАН ХЭСЭГ (Одоо автомат placeholder биш болсон)
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files) return;
+    if (!e.target.files || e.target.files.length === 0) return;
     setUploading(true);
-    setTimeout(() => {
-      setImages((prev) => [...prev, "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=500"]);
+    setFormError("");
+
+    const files = Array.from(e.target.files);
+
+    try {
+      // Олон зураг зэрэг сонгосон ч бүгдийг нь жинхэнэ утгаар нь уншина
+      const base64Promises = files.map((file) => {
+        return new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = (error) => reject(error);
+        });
+      });
+
+      const convertedImages = await Promise.all(base64Promises);
+      setImages((prev) => [...prev, ...convertedImages]);
+    } catch (err) {
+      setFormError("Зургийг уншиж хуулахад алдаа гарлаа. Өөр зураг сонгоно уу.");
+      console.error(err);
+    } finally {
       setUploading(false);
-    }, 1000);
+    }
   };
 
   const handleAddProduct = async (e: React.FormEvent) => {
