@@ -1,276 +1,359 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
-import { Search, SlidersHorizontal, MessageCircle, BadgeCheck, Loader2 } from "lucide-react";
-import RentalModal from "@/components/RentalModal";
+import {
+  Lock,
+  Eye,
+  EyeOff,
+  LogOut,
+  Plus,
+  Trash2,
+  Upload,
+  X,
+  AlertCircle,
+  CheckCircle2,
+  Loader2,
+} from "lucide-react";
 
-// 1. Холбогдох хүмүүсийн мэдээлэл (Админ болон Мидманууд)
-const CONTACTS = [
-  { name: "Админ Бадрах", url: "https://www.facebook.com/share/1ES4ks43Bp/" },
-  { name: "Мидман Төгөлдөр", url: "https://www.facebook.com/share/1btYKT6PTF/" },
-  { name: "Мидман Жаргалсайхан", url: "https://www.facebook.com/share/18zqJRJs2s/?mibextid=wwXIfr" },
+const ADMIN_PASSWORD = "admin123";
+
+const categoryOptions = [
+  { value: "admin_acc", label: "Admin Acc" },
+  { value: "paid_post", label: "Төлбөртэй post" },
+  { value: "midman", label: "Мидман" }, // 👈 Энд "Түрээс"-ийг "Мидман" болгож солив
 ];
 
-// Үндсэн админы линкийг default болгож ашиглах
-const MAIN_ADMIN_LINK = CONTACTS[0].url;
+const statusOptions = [
+  { value: "available", label: "Бэлэн байгаа" },
+  { value: "sold", label: "Зарагдсан" },
+  { value: "rented", label: "Түрээслэгдсэн" },
+];
 
-export interface Product {
-  id: number;
-  title: string;
-  gameId: string;
-  category: "admin_acc" | "paid_post" | "midman"; // 👈 Түрээсийг midman болгож солив
-  status: "available" | "sold" | "rented";
-  tags: string[];
-  basePrice: number;
-  messengerLink: string;
-  imageUrls: string[];
-  rent1h?: number | null;
-  rent12h?: number | null;
-  rent24h?: number | null;
-}
-
-export default function HomePage() {
-  const [products, setProducts] = useState<Product[]>([]);
+export default function AdminPage() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loginError, setLoginError] = useState("");
+  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState<number | null>(null);
+
+  // Формын талбарууд
+  const [title, setTitle] = useState("");
+  const [gameId, setGameId] = useState("");
+  const [category, setCategory] = useState("admin_acc");
+  const [status, setStatus] = useState("available");
+  const [basePrice, setBasePrice] = useState("");
+  const [messengerLink, setMessengerLink] = useState("");
+  const [tagsInput, setTagsInput] = useState("");
+  const [images, setImages] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [formSuccess, setFormSuccess] = useState("");
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    async function fetchProducts() {
-      try {
-        const res = await fetch("/api/products");
-        if (res.ok) {
-          const data = await res.json();
-          setProducts(data);
-        }
-      } catch (error) {
-        console.error("Үзүүлэлт татахад алдаа гарлаа:", error);
-      } finally {
-        setLoading(false);
-      }
+    if (isAuthenticated) {
+      fetchProducts();
     }
-    fetchProducts();
-  }, []);
+  }, [isAuthenticated]);
 
-  const filteredProducts = products.filter((product) => {
-    const matchesTab = activeTab === "all" || product.category === activeTab;
-    const matchesSearch =
-      product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.gameId.includes(searchQuery);
-    return matchesTab && matchesSearch;
-  });
+  async function fetchProducts() {
+    try {
+      const res = await fetch("/api/products");
+      if (res.ok) {
+        const data = await res.json();
+        setProducts(data);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }
 
-  const statusLabels: Record<string, string> = {
-    available: "Бэлэн байгаа",
-    sold: "Зарагдсан",
-    rented: "Түрээслэгдсэн",
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password === ADMIN_PASSWORD) {
+      setIsAuthenticated(true);
+      setLoginError("");
+    } else {
+      setLoginError("Нууц үг буруу байна!");
+    }
   };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    setUploading(true);
+    const files = Array.from(e.target.files);
+    
+    // Энд та өөрийн Cloudinary эсвэл Upload API-г дуудна
+    // Жишээ болгож түр зуур харуулж байна:
+    setTimeout(() => {
+      setImages((prev) => [...prev, "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=500"]);
+      setUploading(false);
+    }, 1000);
+  };
+
+  const handleAddProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError("");
+    setFormSuccess("");
+
+    if (!title || !gameId || !basePrice) {
+      setFormError("Шаардлагатай талбаруудыг бөглөнө үү!");
+      return;
+    }
+
+    const payload = {
+      title,
+      gameId,
+      category,
+      status,
+      basePrice: Number(basePrice),
+      messengerLink,
+      imageUrls: images,
+      tags: tagsInput.split(",").map((t) => t.trim()).filter(Boolean),
+    };
+
+    try {
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        setFormSuccess("Амжилттай нэмэгдлээ!");
+        setShowForm(false);
+        fetchProducts();
+        // Форм цэвэрлэх
+        setTitle(""); setGameId(""); setBasePrice(""); setMessengerLink(""); setTagsInput(""); setImages([]);
+      } else {
+        setFormError("Зар нэмэхэд алдаа гарлаа.");
+      }
+    } catch (err) {
+      setFormError("Сүлжээний алдаа гарлаа.");
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("Энэ зарыг устгахдаа итгэлтэй байна уу?")) return;
+    setDeleteLoading(id);
+    try {
+      const res = await fetch(`/api/products?id=${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setProducts((prev) => prev.filter((p) => p.id !== id));
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setDeleteLoading(null);
+    }
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-[#060B18] text-slate-100 flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-[#0F172A] border border-slate-800 rounded-2xl p-6 shadow-2xl">
+          <div className="flex flex-col items-center mb-6 space-y-2">
+            <div className="p-3 bg-blue-500/10 text-blue-500 rounded-xl border border-blue-500/20">
+              <Lock className="w-6 h-6" />
+            </div>
+            <h1 className="text-xl font-bold">Админ нэвтрэх</h1>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="text-xs text-slate-400 block mb-1.5 font-medium">Нууц үг</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-4 pr-10 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm focus:outline-none focus:border-blue-500 transition-all"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {loginError && (
+              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-400 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                {loginError}
+              </div>
+            )}
+
+            <button type="submit" className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-sm font-bold transition-all">
+              Нэвтрэх
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#060B18] text-slate-100 pb-12">
-      
-      {/* ДЭЭД ХЭСЭГ (HEADER) */}
-      <header className="sticky top-0 z-50 backdrop-blur-md bg-[#060B18]/80 border-b border-slate-800/40">
-        <div className="max-w-md mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-base tracking-tight text-white">
-              Pubg Accounts MN
-            </span>
-            <span className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-md uppercase tracking-wider">
-              <BadgeCheck className="w-3 h-3 fill-blue-400 text-[#060B18]" />
-              Verified
-            </span>
-          </div>
-
-          <a
-            href={MAIN_ADMIN_LINK}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/50 text-slate-300 hover:text-blue-400 hover:border-blue-500/40 transition-all duration-200 flex items-center justify-center"
-            title="Админтай холбогдох"
-          >
-            <svg className="w-5 h-5 fill-current text-slate-300 hover:text-blue-400" viewBox="0 0 24 24">
-              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-            </svg>
-          </a>
+      <header className="border-b border-slate-800/60 bg-[#060B18]/80 sticky top-0 z-40 backdrop-blur-md">
+        <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
+          <h1 className="font-bold text-base">Хянах самбар</h1>
+          <button onClick={() => setIsAuthenticated(false)} className="p-2 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all">
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </header>
 
-      <main className="max-w-md mx-auto px-4 pt-6 space-y-6">
-        
-        {/* HERO ХЭСЭГ */}
-        <div className="space-y-4">
-          <h1 className="text-xl font-extrabold text-white tracking-tight">
-            PUBG Mobile Аккаунт & <span className="text-blue-400">Мидман</span>
-          </h1>
-          
-          {/* 👈 АДМИН БОЛОН МИДМАНУУДЫН 3 ТОВЧ */}
-          <div className="flex flex-col gap-2.5">
-            {CONTACTS.map((person, idx) => (
-              <a
-                key={idx}
-                href={person.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-2.5 px-4 rounded-xl bg-[#1877F2]/10 border border-[#1877F2]/30 text-slate-200 hover:bg-[#1877F2]/20 hover:text-white transition-all duration-200 flex items-center justify-center gap-2.5 text-sm font-semibold tracking-wide"
-              >
-                {/* Facebook Logo */}
-                <svg className="w-5 h-5 fill-current text-[#1877F2] shrink-0" viewBox="0 0 24 24">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                </svg>
-                {person.name}
-              </a>
-            ))}
-          </div>
-        </div>
-
-        {/* ТАВУУД / ФИЛТЕР */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
-          {[
-            { id: "all", label: "Бүгд" },
-            { id: "admin_acc", label: "Admin Acc" },
-            { id: "paid_post", label: "Төлбөртэй post" },
-            { id: "midman", label: "Мидман" }, // 👈 Түрээс байсныг Мидман болгов
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap border transition-all duration-200 ${
-                activeTab === tab.id
-                  ? "bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-600/15"
-                  : "bg-slate-800/40 border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* ХАЙЛТЫН ХЭСЭГ */}
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-            <input
-              type="text"
-              placeholder="Хайх..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/40 focus:ring-1 focus:ring-blue-500/20 transition-all"
-            />
-          </div>
-          <button className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80 text-slate-400 hover:text-slate-200">
-            <SlidersHorizontal className="w-4 h-4" />
+      <main className="max-w-4xl mx-auto px-4 pt-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold">Нийт зар ({products.length})</h2>
+          <button onClick={() => setShowForm(!showForm)} className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all">
+            <Plus className="w-4 h-4" /> Шинэ зар
           </button>
         </div>
 
-        {/* БҮТЭЭГДЭХҮҮНИЙ ЖАГСААЛТ */}
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 text-slate-500 gap-2">
-            <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
-            <span className="text-xs">Уншиж байна...</span>
-          </div>
-        ) : filteredProducts.length === 0 ? (
-          <div className="text-center py-16 text-sm text-slate-500">
-            Зар одоогоор олдсонгүй.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-4">
-            {filteredProducts.map((product) => (
-              <div
-                key={product.id}
-                onClick={() => setSelectedProduct(product)}
-                className="bg-[#0F172A] border border-slate-800/60 rounded-2xl overflow-hidden shadow-xl cursor-pointer hover:border-slate-700/80 hover:bg-slate-800/40 transition-all"
-              >
-                {/* Зургийн хэсэг */}
-                <div className="relative aspect-[16/10] w-full bg-slate-950">
-                  {product.imageUrls && product.imageUrls.length > 0 ? (
-                    <Image
-                      src={product.imageUrls[0]}
-                      alt={product.title}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 480px) 100vw"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-xs text-slate-600">
-                      Зураггүй
-                    </div>
-                  )}
-
-                  <div className="absolute top-3 right-3">
-                    <span className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border backdrop-blur-md ${
-                      product.status === "available"
-                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                        : "bg-slate-700/20 text-slate-400 border-slate-600/30"
-                    }`}>
-                      ● {statusLabels[product.status] || product.status}
-                    </span>
+        {/* ШИНЭ ЗАР НЭМЭХ ФОРМ */}
+        <AnimatePresence>
+          {showForm && (
+            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+              <form onSubmit={handleAddProduct} className="p-6 bg-[#0F172A] border border-slate-800 rounded-2xl space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Гарчиг *</label>
+                    <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm" placeholder="M416 Glacier-тэй аккаунт" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Тоглоомын ID *</label>
+                    <input type="text" value={gameId} onChange={(e) => setGameId(e.target.value)} className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm" placeholder="512345678" />
                   </div>
                 </div>
 
-                {/* Мэдээллийн хэсэг */}
-                <div className="p-4 space-y-3">
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-bold text-base text-slate-100 truncate pr-2">
-                        {product.title}
-                      </h3>
-                      <span className="text-xs text-slate-500 font-mono shrink-0">
-                        ID: {product.gameId}
-                      </span>
-                    </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Ангилал</label>
+                    <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-300">
+                      {categoryOptions.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Төлөв</label>
+                    <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-300">
+                      {statusOptions.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Үндсэн үнэ (₮) *</label>
+                    <input type="number" value={basePrice} onChange={(e) => setBasePrice(e.target.value)} className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm" placeholder="150000" />
+                  </div>
+                </div>
 
-                    {product.tags && product.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 pt-1">
-                        {product.tags.map((tag, i) => (
-                          <span
-                            key={i}
-                            className="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-md"
-                          >
-                            {tag}
-                          </span>
-                        ))}
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Холбогдох Messenger Линк</label>
+                  <input type="text" value={messengerLink} onChange={(e) => setMessengerLink(e.target.value)} className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm" placeholder="https://m.me/username" />
+                </div>
+
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Тагууд (Таслалаар тусгаарлана уу)</label>
+                  <input type="text" value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm" placeholder="Glacier M4, X-Suit, Хуучин" />
+                </div>
+
+                {/* ЗУРАГ УДАРДАХ ХЭСЭГ */}
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1.5">Зургууд</label>
+                  <div className="flex flex-wrap gap-2">
+                    {images.map((src, idx) => (
+                      <div key={idx} className="relative w-20 h-20 bg-slate-950 border border-slate-800 rounded-xl overflow-hidden">
+                        <Image src={src} alt="Uploaded" fill className="object-cover" />
+                        <button type="button" onClick={() => setImages(images.filter((_, i) => i !== idx))} className="absolute top-1 right-1 p-1 bg-black/60 rounded-md text-slate-400 hover:text-white">
+                          <X className="w-3 h-3" />
+                        </button>
                       </div>
-                    )}
+                    ))}
+                    <button type="button" onClick={() => fileInputRef.current?.click()} className="w-20 h-20 border border-dashed border-slate-800 rounded-xl flex flex-col items-center justify-center gap-1 text-slate-500 hover:text-slate-300 hover:border-slate-600 transition-all">
+                      {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                      <span className="text-[10px]">Хуулах</span>
+                    </button>
+                    <input type="file" ref={fileInputRef} onChange={handleImageUpload} multiple className="hidden" accept="image/*" />
                   </div>
-
-                  <div className="pt-2 border-t border-slate-800/60 flex items-end justify-between">
-                    <div>
-                      <span className="text-[10px] text-slate-500 block uppercase font-medium tracking-wider">
-                        Үндсэн үнэ
-                      </span>
-                      <span className="text-base font-black text-blue-400">
-                        {new Intl.NumberFormat("mn-MN").format(product.basePrice)} ₮
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Холбогдох товч */}
-                  <a
-                    href={product.messengerLink || MAIN_ADMIN_LINK}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="w-full py-2.5 rounded-xl bg-slate-800 text-slate-200 hover:bg-blue-600 hover:text-white font-bold text-xs transition-all duration-200 flex items-center justify-center gap-1.5 border border-slate-700/40 hover:border-blue-500"
-                  >
-                    <MessageCircle className="w-4 h-4" />
-                    Холбогдох
-                  </a>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </main>
 
-      {/* ЗУРАГ ХАРДАГ МОДАЛ */}
-<RentalModal
-  product={selectedProduct as any} // 👈 'as any' гэж бичиж алдааг алгасна
-  isOpen={selectedProduct !== null}
-  onClose={() => setSelectedProduct(null)}
-/>
-  </div>
+                {formError && <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 p-3 rounded-xl">{formError}</div>}
+                {formSuccess && <div className="text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-xl">{formSuccess}</div>}
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700">Цуцлах</button>
+                  <button type="submit" className="px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500">Нийтлэх</button>
+                </div>
+              </form>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ХҮСНЭГТ */}
+        <div className="bg-[#0F172A] border border-slate-800/60 rounded-2xl overflow-hidden">
+          {loading ? (
+            <div className="py-20 flex flex-col items-center justify-center text-slate-500 gap-2">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span className="text-xs">Уншиж байна...</span>
+            </div>
+          ) : products.length === 0 ? (
+            <div className="py-16 text-center text-sm text-slate-500">Зар байхгүй байна.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-800 bg-slate-900/40 text-xs text-slate-400 uppercase font-semibold">
+                    <th className="px-5 py-3">Зар</th>
+                    <th className="px-5 py-3">Ангилал</th>
+                    <th className="px-5 py-3">Үнэ</th>
+                    <th className="px-5 py-3 text-right">Үйлдэл</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 text-sm">
+                  {products.map((product) => (
+                    <tr key={product.id} className="hover:bg-slate-900/20">
+                      <td className="px-5 py-3.5 flex items-center gap-3">
+                        <div className="relative w-10 h-10 bg-slate-950 rounded-lg overflow-hidden shrink-0">
+                          {product.imageUrls?.[0] ? <Image src={product.imageUrls[0]} alt="" fill className="object-cover" /> : <div className="w-full h-full bg-slate-900" />}
+                        </div>
+                        <div>
+                          <div className="font-bold text-slate-200">{product.title}</div>
+                          <div className="text-xs text-slate-500">ID: {product.gameId}</div>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5 text-xs text-slate-400">
+                        {product.category === "admin_acc" && "Admin Acc"}
+                        {product.category === "paid_post" && "Төлбөртэй post"}
+                        {product.category === "midman" && "Мидман"}
+                      </td>
+                      <td className="px-5 py-3.5 font-medium text-blue-400">
+                        {new Intl.NumberFormat("mn-MN").format(product.basePrice)} ₮
+                      </td>
+                      <td className="px-5 py-3.5 text-right">
+                        <button onClick={() => handleDelete(product.id)} disabled={deleteLoading === product.id} className="p-2 text-slate-500 hover:text-red-400 rounded-lg hover:bg-red-500/10 disabled:opacity-50 transition-all">
+                          {deleteLoading === product.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
   );
 }
+
