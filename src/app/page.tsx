@@ -5,7 +5,7 @@ import Image from "next/image";
 import { Search, MessageCircle, BadgeCheck, Loader2, ShieldCheck } from "lucide-react";
 import RentalModal from "@/components/RentalModal";
 
-// 🚀 БАТАЛГААТ 3 АДМИН БОЛОН МИДМАНЫ ЛИНКҮҮД (Энд яг чиний өгсөн линкүүд байна)
+// 🚀 БАТАЛГААТ 3 АДМИН БОЛОН МИДМАНЫ ЛИНКҮҮД
 const CONTACTS = [
   { name: "Админ Бадрах", url: "https://www.facebook.com/share/1ES4ks43Bp/" },
   { name: "Мидман Төгөлдөр", url: "https://www.facebook.com/share/1btYKT6PTF/" },
@@ -237,12 +237,13 @@ export default function HomePage() {
         )}
       </main>
 
-      {/* ЗУРАГ ХАРДАГ МОДАЛ (Any төрлийн алдаа зассан) */}
-      <RentalModal
-        product={selectedProduct as any}
-        isOpen={selectedProduct !== null}
-        onClose={() => setSelectedProduct(null)}
-      />
+      {/* 🚀 БҮТЭЛГҮЙТЭЛ (BUILD ERROR) ЗАССАН ХЭСЭГ */}
+      {selectedProduct && (
+        <RentalModal
+          product={selectedProduct as any}
+          onClose={() => setSelectedProduct(null)}
+        />
+      )}
     </div>
   );
 }
