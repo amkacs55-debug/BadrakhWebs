@@ -69,9 +69,8 @@ export default function AdminPage() {
       }
     } catch (err) {
       console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    } file
+    setLoading(false);
   }
 
   const handleLogin = (e: React.FormEvent) => {
@@ -84,7 +83,6 @@ export default function AdminPage() {
     }
   };
 
-  // 🚀 ЖИНХЭНЭ ЗУРГИЙГ УНШИЖ ХУУЛДАГ БОЛГОЖ ЗАССАН ХЭСЭГ (Одоо автомат placeholder биш болсон)
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
     setUploading(true);
@@ -93,7 +91,6 @@ export default function AdminPage() {
     const files = Array.from(e.target.files);
 
     try {
-      // Олон зураг зэрэг сонгосон ч бүгдийг нь жинхэнэ утгаар нь уншина
       const base64Promises = files.map((file) => {
         return new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
@@ -106,7 +103,7 @@ export default function AdminPage() {
       const convertedImages = await Promise.all(base64Promises);
       setImages((prev) => [...prev, ...convertedImages]);
     } catch (err) {
-      setFormError("Зургийг уншиж хуулахад алдаа гарлаа. Өөр зураг сонгоно уу.");
+      setFormError("Зургийг уншиж хуулахад алдаа гарлаа.");
       console.error(err);
     } finally {
       setUploading(false);
@@ -154,16 +151,30 @@ export default function AdminPage() {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  // 🚀 УСТГАХ ҮЙЛДЛИЙГ БАТАЛГААТАЙ БОЛГОЖ ЗАССАН ХЭСЭГ
+  const handleDelete = async (e: React.MouseEvent, id: any) => {
+    e.preventDefault();
+    e.stopPropagation(); // Дээшээ event дамжихаас сэргийлнэ
+
     if (!confirm("Энэ зарыг устгахдаа итгэлтэй байна уу?")) return;
+    
     setDeleteLoading(id);
     try {
-      const res = await fetch(`/api/products?id=${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/products?id=${id}`, { 
+        method: "DELETE" 
+      });
+
       if (res.ok) {
+        // Дэлгэц дээрх жагсаалтаас шууд хасна
         setProducts((prev) => prev.filter((p) => p.id !== id));
+        alert("Зарыг амжилттай устгалаа!");
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        alert(`Устгаж чадсангүй: ${errorData.message || "Серверийн алдаа эсвэл ID олдсонгүй."}`);
       }
     } catch (err) {
       console.error(err);
+      alert("Сүлжээний алдаа гарлаа. Дахин оролдоно уу.");
     } finally {
       setDeleteLoading(null);
     }
@@ -351,7 +362,13 @@ export default function AdminPage() {
                         {new Intl.NumberFormat("mn-MN").format(product.basePrice)} ₮
                       </td>
                       <td className="px-5 py-3.5 text-right">
-                        <button onClick={() => handleDelete(product.id)} disabled={deleteLoading === product.id} className="p-2 text-slate-500 hover:text-red-400 rounded-lg hover:bg-red-500/10 disabled:opacity-50 transition-all">
+                        {/* 🚀 БАТАЛГААТАЙ ТОГТООГЧ ТӨРӨЛТЭЙ ТОВЧ */}
+                        <button 
+                          type="button"
+                          onClick={(e) => handleDelete(e, product.id)} 
+                          disabled={deleteLoading === product.id} 
+                          className="p-2 text-slate-500 hover:text-red-400 rounded-lg hover:bg-red-500/10 disabled:opacity-50 transition-all"
+                        >
                           {deleteLoading === product.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                         </button>
                       </td>
@@ -366,3 +383,4 @@ export default function AdminPage() {
     </div>
   );
 }
+
