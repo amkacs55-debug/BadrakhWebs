@@ -14,6 +14,7 @@ import {
   X,
   AlertCircle,
   Loader2,
+  CheckCircle,
 } from "lucide-react";
 
 const ADMIN_PASSWORD = "admin123";
@@ -38,6 +39,9 @@ export default function AdminPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  
+  // Төлөвүүд
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState<number | null>(null);
 
   const [title, setTitle] = useState("");
@@ -61,6 +65,7 @@ export default function AdminPage() {
   }, [isAuthenticated]);
 
   async function fetchProducts() {
+    setLoading(true);
     try {
       const res = await fetch("/api/products");
       if (res.ok) {
@@ -111,8 +116,11 @@ export default function AdminPage() {
     }
   };
 
+  // 🔥 ПОСТЛОХОД УНШИЖ БАЙГААГ ИЛТ МЭДЭГДЭХ ХЭСЭГ
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
     setFormError("");
     setFormSuccess("");
 
@@ -120,6 +128,8 @@ export default function AdminPage() {
       setFormError("Шаардлагатай талбаруудыг бөглөнө үү!");
       return;
     }
+
+    setIsSubmitting(true);
 
     const payload = {
       title,
@@ -140,18 +150,24 @@ export default function AdminPage() {
       });
 
       if (res.ok) {
-        setFormSuccess("Амжилттай нэмэгдлээ!");
-        setShowForm(false);
-        fetchProducts();
+        setFormSuccess("Амжилттай нийтлэгдлээ! 🎉");
         setTitle(""); setGameId(""); setBasePrice(""); setMessengerLink(""); setTagsInput(""); setImages([]);
+        setTimeout(() => {
+          setShowForm(false);
+          setFormSuccess("");
+          fetchProducts(); // Жагсаалтыг шинэчлэх
+        }, 1000);
       } else {
-        setFormError("Зар нэмэхэд алдаа гарлаа.");
+        setFormError("Зар нэмэхэд алдаа гарлаа. Сервер хариу өгсөнгүй.");
       }
     } catch (err) {
-      setFormError("Сүлжээний алдаа гарлаа.");
+      setFormError("Сүлжээний алдаа гарлаа. Интернетээ шалгана уу.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
+  // 🔥 ХУУДАС РЕФРЕШ ХИЙЛГҮЙ ШУУД НҮДЭН ДЭЭР УСТГАДАГ ХЭСЭГ
   const handleDelete = async (e: React.MouseEvent, id: any) => {
     e.preventDefault();
     e.stopPropagation();
@@ -165,11 +181,10 @@ export default function AdminPage() {
       });
 
       if (res.ok) {
+        // Дэлгэц дээрх жагсаалтаас Пязда гэж байгаад шууд хасна!
         setProducts((prev) => prev.filter((p) => p.id !== id));
-        alert("Зарыг амжилттай устгалаа!");
       } else {
-        const errorData = await res.json().catch(() => ({}));
-        alert(`Устгаж чадсангүй: ${errorData.message || "Алдаа гарлаа."}`);
+        alert("Устгаж чадсангүй, сервер дээр алдаа гарлаа.");
       }
     } catch (err) {
       console.error(err);
@@ -253,41 +268,41 @@ export default function AdminPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs text-slate-400 block mb-1">Гарчиг *</label>
-                    <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm" placeholder="M416 Glacier-тэй аккаунт" />
+                    <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:border-blue-500 focus:outline-none" placeholder="M416 Glacier-тэй аккаунт" />
                   </div>
                   <div>
                     <label className="text-xs text-slate-400 block mb-1">Тоглоомын ID *</label>
-                    <input type="text" value={gameId} onChange={(e) => setGameId(e.target.value)} className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm" placeholder="512345678" />
+                    <input type="text" value={gameId} onChange={(e) => setGameId(e.target.value)} className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:border-blue-500 focus:outline-none" placeholder="512345678" />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="text-xs text-slate-400 block mb-1">Ангилал</label>
-                    <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-300">
+                    <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-300 focus:border-blue-500 focus:outline-none">
                       {categoryOptions.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="text-xs text-slate-400 block mb-1">Төлөв</label>
-                    <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-300">
+                    <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-300 focus:border-blue-500 focus:outline-none">
                       {statusOptions.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="text-xs text-slate-400 block mb-1">Үндсэн үнэ (₮) *</label>
-                    <input type="number" value={basePrice} onChange={(e) => setBasePrice(e.target.value)} className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm" placeholder="150000" />
+                    <input type="number" value={basePrice} onChange={(e) => setBasePrice(e.target.value)} className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:border-blue-500 focus:outline-none" placeholder="150000" />
                   </div>
                 </div>
 
                 <div>
                   <label className="text-xs text-slate-400 block mb-1">Холбогдох Messenger Линк</label>
-                  <input type="text" value={messengerLink} onChange={(e) => setMessengerLink(e.target.value)} className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm" placeholder="https://m.me/username" />
+                  <input type="text" value={messengerLink} onChange={(e) => setMessengerLink(e.target.value)} className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:border-blue-500 focus:outline-none" placeholder="https://m.me/username" />
                 </div>
 
                 <div>
                   <label className="text-xs text-slate-400 block mb-1">Тагууд (Таслалаар тусгаарлана уу)</label>
-                  <input type="text" value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm" placeholder="Glacier M4, X-Suit, Хуучин" />
+                  <input type="text" value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:border-blue-500 focus:outline-none" placeholder="Glacier M4, X-Suit, Хуучин" />
                 </div>
 
                 <div>
@@ -310,21 +325,32 @@ export default function AdminPage() {
                 </div>
 
                 {formError && <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 p-3 rounded-xl">{formError}</div>}
-                {formSuccess && <div className="text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-xl">{formSuccess}</div>}
+                {formSuccess && <div className="text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-xl flex items-center gap-2"><CheckCircle className="w-4 h-4" />{formSuccess}</div>}
 
                 <div className="flex justify-end gap-2 pt-2">
-                  <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700">Цуцлах</button>
-                  <button type="submit" className="px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500">Нийтлэх</button>
+                  <button type="button" disabled={isSubmitting} onClick={() => setShowForm(false)} className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 disabled:opacity-50">Цуцлах</button>
+                  
+                  {/* 🔥 АЙМАР УХААЛАГ УНШИЖ БАЙНА ГЭДЭГ ТОГТООГЧ ТОГЛОГЧ */}
+                  <button type="submit" disabled={isSubmitting} className="px-5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 min-w-[100px] flex items-center justify-center gap-1.5 transition-all disabled:opacity-70">
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        Нийтэлж байна...
+                      </>
+                    ) : (
+                      "Нийтлэх"
+                    )}
+                  </button>
                 </div>
               </form>
             </motion.div>
           )}
         </AnimatePresence>
 
-        <div className="bg-[#0F172A] border border-slate-800/60 rounded-2xl overflow-hidden">
+        <div className="bg-[#0F172A] border border-slate-800/60 rounded-2xl overflow-hidden shadow-xl">
           {loading ? (
             <div className="py-20 flex flex-col items-center justify-center text-slate-500 gap-2">
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
               <span className="text-xs">Уншиж байна...</span>
             </div>
           ) : products.length === 0 ? (
@@ -342,14 +368,14 @@ export default function AdminPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-800/60 text-sm">
                   {products.map((product) => (
-                    <tr key={product.id} className="hover:bg-slate-900/20">
+                    <tr key={product.id} className="hover:bg-slate-900/20 transition-all">
                       <td className="px-5 py-3.5 flex items-center gap-3">
                         <div className="relative w-10 h-10 bg-slate-950 rounded-lg overflow-hidden shrink-0">
                           {product.imageUrls?.[0] ? <Image src={product.imageUrls[0]} alt="" fill className="object-cover" /> : <div className="w-full h-full bg-slate-900" />}
                         </div>
                         <div>
                           <div className="font-bold text-slate-200">{product.title}</div>
-                          <div className="text-xs text-slate-500">ID: {product.gameId}</div>
+                          <div className="text-xs text-slate-500 font-mono">ID: {product.gameId}</div>
                         </div>
                       </td>
                       <td className="px-5 py-3.5 text-xs text-slate-400">
@@ -357,17 +383,19 @@ export default function AdminPage() {
                         {product.category === "paid_post" && "Төлбөртэй post"}
                         {product.category === "midman" && "Мидман"}
                       </td>
-                      <td className="px-5 py-3.5 font-medium text-blue-400">
+                      <td className="px-5 py-3.5 font-bold text-blue-400">
                         {new Intl.NumberFormat("mn-MN").format(product.basePrice)} ₮
                       </td>
                       <td className="px-5 py-3.5 text-right">
+                        {/* 🔥 ДЭЛГЭЦНЭЭС ШУУД ХУСДАГ УСТГАХ ТОБЧ */}
                         <button 
                           type="button"
                           onClick={(e) => handleDelete(e, product.id)} 
                           disabled={deleteLoading === product.id} 
                           className="p-2 text-slate-500 hover:text-red-400 rounded-lg hover:bg-red-500/10 disabled:opacity-50 transition-all"
+                          title="Устгах"
                         >
-                          {deleteLoading === product.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                          {deleteLoading === product.id ? <Loader2 className="w-4 h-4 animate-spin text-red-400" /> : <Trash2 className="w-4 h-4" />}
                         </button>
                       </td>
                     </tr>
