@@ -13,16 +13,16 @@ import {
   Upload,
   X,
   AlertCircle,
-  CheckCircle2,
   Loader2,
 } from "lucide-react";
 
 const ADMIN_PASSWORD = "admin123";
 
+// Админаас сонгох төрлүүд
 const categoryOptions = [
   { value: "admin_acc", label: "Admin Acc" },
   { value: "paid_post", label: "Төлбөртэй post" },
-  { value: "midman", label: "Мидман" }, // 👈 Энд "Түрээс"-ийг "Мидман" болгож солив
+  { value: "midman", label: "Мидман" },
 ];
 
 const statusOptions = [
@@ -41,7 +41,6 @@ export default function AdminPage() {
   const [showForm, setShowForm] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState<number | null>(null);
 
-  // Формын талбарууд
   const [title, setTitle] = useState("");
   const [gameId, setGameId] = useState("");
   const [category, setCategory] = useState("admin_acc");
@@ -89,10 +88,6 @@ export default function AdminPage() {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     setUploading(true);
-    const files = Array.from(e.target.files);
-    
-    // Энд та өөрийн Cloudinary эсвэл Upload API-г дуудна
-    // Жишээ болгож түр зуур харуулж байна:
     setTimeout(() => {
       setImages((prev) => [...prev, "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=500"]);
       setUploading(false);
@@ -131,7 +126,6 @@ export default function AdminPage() {
         setFormSuccess("Амжилттай нэмэгдлээ!");
         setShowForm(false);
         fetchProducts();
-        // Форм цэвэрлэх
         setTitle(""); setGameId(""); setBasePrice(""); setMessengerLink(""); setTagsInput(""); setImages([]);
       } else {
         setFormError("Зар нэмэхэд алдаа гарлаа.");
@@ -223,7 +217,6 @@ export default function AdminPage() {
           </button>
         </div>
 
-        {/* ШИНЭ ЗАР НЭМЭХ ФОРМ */}
         <AnimatePresence>
           {showForm && (
             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
@@ -268,7 +261,6 @@ export default function AdminPage() {
                   <input type="text" value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm" placeholder="Glacier M4, X-Suit, Хуучин" />
                 </div>
 
-                {/* ЗУРАГ УДАРДАХ ХЭСЭГ */}
                 <div>
                   <label className="text-xs text-slate-400 block mb-1.5">Зургууд</label>
                   <div className="flex flex-wrap gap-2">
@@ -300,7 +292,6 @@ export default function AdminPage() {
           )}
         </AnimatePresence>
 
-        {/* ХҮСНЭГТ */}
         <div className="bg-[#0F172A] border border-slate-800/60 rounded-2xl overflow-hidden">
           {loading ? (
             <div className="py-20 flex flex-col items-center justify-center text-slate-500 gap-2">
@@ -356,4 +347,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
