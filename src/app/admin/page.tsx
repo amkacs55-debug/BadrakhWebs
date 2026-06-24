@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import type { Product } from "@/components/ProductCard";
 
-const ADMIN_PASSWORD = "admin123";
+const ADMIN_PASSWORD = "Hosoo0625@";
 
 // 1. Ангиллын сонголтуудыг шинэ утгаар солив
 const categoryOptions = [
