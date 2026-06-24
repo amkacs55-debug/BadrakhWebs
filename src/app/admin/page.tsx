@@ -1,701 +1,276 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect } from "react";
 import Image from "next/image";
-import {
-  Lock,
-  Eye,
-  EyeOff,
-  LogOut,
-  Plus,
-  Trash2,
-  Upload,
-  X,
-  ShoppingBag,
-  AlertCircle,
-  CheckCircle2,
-} from "lucide-react";
-import type { Product } from "@/components/ProductCard";
+import { Search, SlidersHorizontal, MessageCircle, BadgeCheck, Loader2 } from "lucide-react";
+import RentalModal from "@/components/RentalModal";
 
-const ADMIN_PASSWORD = "Hosoo0625@";
-
-// 1. Ангиллын сонголтуудыг шинэ утгаар солив
-const categoryOptions = [
-  { value: "admin_acc", label: "Admin Acc" },
-  { value: "paid_post", label: "Төлбөртэй post" },
-  { value: "rent", label: "Түрээс" },
+// 1. Холбогдох хүмүүсийн мэдээлэл (Админ болон Мидманууд)
+const CONTACTS = [
+  { name: "Админ Бадрах", url: "https://www.facebook.com/share/1ES4ks43Bp/" },
+  { name: "Мидман Төгөлдөр", url: "https://www.facebook.com/share/1btYKT6PTF/" },
+  { name: "Мидман Жаргалсайхан", url: "https://www.facebook.com/share/18zqJRJs2s/?mibextid=wwXIfr" },
 ];
 
-const statusOptions = [
-  { value: "available", label: "Бэлэн байгаа" },
-  { value: "sold", label: "Зарагдсан" },
-  { value: "rented", label: "Түрээслэгдсэн" },
-];
+// Үндсэн админы линкийг default болгож ашиглах
+const MAIN_ADMIN_LINK = CONTACTS[0].url;
 
-export default function AdminPage() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [loginError, setLoginError] = useState("");
+export interface Product {
+  id: number;
+  title: string;
+  gameId: string;
+  category: "admin_acc" | "paid_post" | "midman"; // 👈 Түрээсийг midman болгож солив
+  status: "available" | "sold" | "rented";
+  tags: string[];
+  basePrice: number;
+  messengerLink: string;
+  imageUrls: string[];
+  rent1h?: number | null;
+  rent12h?: number | null;
+  rent24h?: number | null;
+}
+
+export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [deleteLoading, setDeleteLoading] = useState<number | null>(null);
-  const [notification, setNotification] = useState<{ message: string; type: "success" | "error" } | null>(null);
-
-  // 2. Form state-ийн category төрлийг шинэчлэв
-  const [formData, setFormData] = useState({
-    title: "",
-    gameId: "",
-    category: "admin_acc" as "admin_acc" | "paid_post" | "rent",
-    status: "available" as "available" | "sold" | "rented",
-    tags: "",
-    basePrice: "",
-    messengerLink: "https://m.me/",
-    rent1h: "",
-    rent12h: "",
-    rent24h: "",
-  });
-  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
-  const [isDragging, setIsDragging] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [formSubmitting, setFormSubmitting] = useState(false);
-
-  const showNotification = (message: string, type: "success" | "error") => {
-    setNotification({ message, type });
-    setTimeout(() => setNotification(null), 3000);
-  };
-
-  const fetchProducts = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/products");
-      const data = await res.json();
-      setProducts(data);
-    } catch (error) {
-      console.error("Failed to fetch products:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [activeTab, setActiveTab] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchProducts();
-    }
-  }, [isAuthenticated, fetchProducts]);
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (password === ADMIN_PASSWORD) {
-      setIsAuthenticated(true);
-      setLoginError("");
-    } else {
-      setLoginError("Нууц үг буруу байна");
-    }
-  };
-
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    setPassword("");
-  };
-
-  const handleDelete = async (id: number) => {
-    if (!confirm("Энэ бүтээгдэхүүнийг устгахдаа итгэлтэй байна уу?")) return;
-    setDeleteLoading(id);
-    try {
-      const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        setProducts((prev) => prev.filter((p) => p.id !== id));
-        showNotification("Бүтээгдэхүүн амжилттай устгагдлаа", "success");
-      } else {
-        showNotification("Устгахад алдаа гарлаа", "error");
-      }
-    } catch {
-      showNotification("Устгахад алдаа гарлаа", "error");
-    } finally {
-      setDeleteLoading(null);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith("image/"));
-    handleFiles(files);
-  };
-
-  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []).filter((f) => f.type.startsWith("image/"));
-    handleFiles(files);
-  };
-
-  const handleFiles = (files: File[]) => {
-    files.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        if (result) {
-          setUploadedImages((prev) => [...prev, result]);
+    async function fetchProducts() {
+      try {
+        const res = await fetch("/api/products");
+        if (res.ok) {
+          const data = await res.json();
+          setProducts(data);
         }
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const removeImage = (index: number) => {
-    setUploadedImages((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormSubmitting(true);
-
-    try {
-      const payload = {
-        title: formData.title,
-        gameId: formData.gameId,
-        category: formData.category,
-        status: formData.status,
-        tags: formData.tags.split(",").map((t) => t.trim()).filter(Boolean),
-        basePrice: parseInt(formData.basePrice, 10) || 0,
-        messengerLink: formData.messengerLink,
-        imageUrls: uploadedImages,
-        rent1h: formData.rent1h ? parseInt(formData.rent1h, 10) : null,
-        rent12h: formData.rent12h ? parseInt(formData.rent12h, 10) : null,
-        rent24h: formData.rent24h ? parseInt(formData.rent24h, 10) : null,
-      };
-
-      const res = await fetch("/api/products", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (res.ok) {
-        showNotification("Бүтээгдэхүүн амжилттай нэмэгдлээ", "success");
-        setFormData({
-          title: "",
-          gameId: "",
-          category: "admin_acc", // 👈 Амжилттай хадгалагдсаны дараа admin_acc-аар reset хийнэ
-          status: "available",
-          tags: "",
-          basePrice: "",
-          messengerLink: "https://m.me/",
-          rent1h: "",
-          rent12h: "",
-          rent24h: "",
-        });
-        setUploadedImages([]);
-        setShowForm(false);
-        fetchProducts();
-      } else {
-        showNotification("Нэмэхэд алдаа гарлаа", "error");
+      } catch (error) {
+        console.error("Үзүүлэлт татахад алдаа гарлаа:", error);
+      } finally {
+        setLoading(false);
       }
-    } catch {
-      showNotification("Нэмэхэд алдаа гарлаа", "error");
-    } finally {
-      setFormSubmitting(false);
     }
-  };
+    fetchProducts();
+  }, []);
+
+  const filteredProducts = products.filter((product) => {
+    const matchesTab = activeTab === "all" || product.category === activeTab;
+    const matchesSearch =
+      product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.gameId.includes(searchQuery);
+    return matchesTab && matchesSearch;
+  });
 
   const statusLabels: Record<string, string> = {
-    available: "Бэлэн",
+    available: "Бэлэн байгаа",
     sold: "Зарагдсан",
     rented: "Түрээслэгдсэн",
   };
 
-  const statusColors: Record<string, string> = {
-    available: "text-emerald-400 bg-emerald-500/15 border-emerald-500/30",
-    sold: "text-slate-400 bg-slate-600/15 border-slate-600/30",
-    rented: "text-indigo-400 bg-indigo-500/15 border-indigo-500/30",
-  };
-
-  // 3. Хүснэгтийн жагсаалтад харагдах текстийг шинэчлэв
-  const categoryLabels: Record<string, string> = {
-    admin_acc: "Admin Acc",
-    paid_post: "Төлбөртэй post",
-    rent: "Түрээс",
-  };
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-[#060B18] flex items-center justify-center px-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="w-full max-w-sm"
-        >
-          <div className="bg-[#0F172A] border border-slate-800/60 rounded-2xl p-8 shadow-xl shadow-black/20">
-            <div className="flex justify-center mb-6">
-              <div className="p-3 rounded-2xl bg-blue-600/15 border border-blue-500/25">
-                <Lock className="w-7 h-7 text-blue-400" />
-              </div>
-            </div>
-            <h1 className="text-xl font-bold text-center text-white mb-1">
-              Админ нэвтрэх
-            </h1>
-            <p className="text-sm text-slate-500 text-center mb-6">
-              Удирдлагын самбарт нэвтрэхийн тулд нууц үгээ оруулна уу
-            </p>
-
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    setLoginError("");
-                  }}
-                  placeholder="Нууц үг"
-                  className="w-full px-4 py-3 pr-11 rounded-xl bg-slate-800/50 border border-slate-700/50 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/40 focus:ring-1 focus:ring-blue-500/20 transition-all"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-
-              {loginError && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  className="flex items-center gap-2 text-sm text-red-400"
-                >
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  {loginError}
-                </motion.div>
-              )}
-
-              <button
-                type="submit"
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-slate-800 text-white font-semibold text-sm shadow-lg shadow-blue-900/25 hover:shadow-blue-900/40 transition-all duration-300 active:scale-[0.98]"
-              >
-                Нэвтрэх
-              </button>
-            </form>
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-[#060B18]">
-      {/* Notification */}
-      <AnimatePresence>
-        {notification && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-4 right-4 z-[200] flex items-center gap-2 px-4 py-3 rounded-xl border shadow-lg"
-            style={{
-              background: notification.type === "success" ? "rgba(6, 78, 59, 0.95)" : "rgba(127, 29, 29, 0.95)",
-              borderColor: notification.type === "success" ? "rgba(52, 211, 153, 0.3)" : "rgba(248, 113, 113, 0.3)",
-            }}
-          >
-            {notification.type === "success" ? (
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            ) : (
-              <AlertCircle className="w-4 h-4 text-red-400" />
-            )}
-            <span className="text-sm text-white">{notification.message}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Header */}
-      <header className="sticky top-0 z-50 backdrop-blur-md bg-[#060B18]/80 border-b border-slate-800/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <h1 className="text-lg font-bold text-white">Удирдлагын самбар</h1>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setShowForm(!showForm)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600/15 border border-blue-500/30 text-blue-400 hover:bg-blue-600/25 transition-all text-sm font-medium"
-              >
-                <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">Шинээр нэмэх</span>
-              </button>
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800/50 border border-slate-700/50 text-slate-400 hover:text-slate-200 hover:bg-slate-700/60 transition-all text-sm font-medium"
-              >
-                <LogOut className="w-4 h-4" />
-                <span className="hidden sm:inline">Гарах</span>
-              </button>
-            </div>
+    <div className="min-h-screen bg-[#060B18] text-slate-100 pb-12">
+      
+      {/* ДЭЭД ХЭСЭГ (HEADER) */}
+      <header className="sticky top-0 z-50 backdrop-blur-md bg-[#060B18]/80 border-b border-slate-800/40">
+        <div className="max-w-md mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-base tracking-tight text-white">
+              Pubg Accounts MN
+            </span>
+            <span className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-md uppercase tracking-wider">
+              <BadgeCheck className="w-3 h-3 fill-blue-400 text-[#060B18]" />
+              Verified
+            </span>
           </div>
+
+          <a
+            href={MAIN_ADMIN_LINK}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/50 text-slate-300 hover:text-blue-400 hover:border-blue-500/40 transition-all duration-200 flex items-center justify-center"
+            title="Админтай холбогдох"
+          >
+            <svg className="w-5 h-5 fill-current text-slate-300 hover:text-blue-400" viewBox="0 0 24 24">
+              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+            </svg>
+          </a>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-        {/* Add Form */}
-        <AnimatePresence>
-          {showForm && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
-              className="overflow-hidden"
+      <main className="max-w-md mx-auto px-4 pt-6 space-y-6">
+        
+        {/* HERO ХЭСЭГ */}
+        <div className="space-y-4">
+          <h1 className="text-xl font-extrabold text-white tracking-tight">
+            PUBG Mobile Аккаунт & <span className="text-blue-400">Мидман</span>
+          </h1>
+          
+          {/* 👈 АДМИН БОЛОН МИДМАНУУДЫН 3 ТОВЧ */}
+          <div className="flex flex-col gap-2.5">
+            {CONTACTS.map((person, idx) => (
+              <a
+                key={idx}
+                href={person.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-2.5 px-4 rounded-xl bg-[#1877F2]/10 border border-[#1877F2]/30 text-slate-200 hover:bg-[#1877F2]/20 hover:text-white transition-all duration-200 flex items-center justify-center gap-2.5 text-sm font-semibold tracking-wide"
+              >
+                {/* Facebook Logo */}
+                <svg className="w-5 h-5 fill-current text-[#1877F2] shrink-0" viewBox="0 0 24 24">
+                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                </svg>
+                {person.name}
+              </a>
+            ))}
+          </div>
+        </div>
+
+        {/* ТАВУУД / ФИЛТЕР */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+          {[
+            { id: "all", label: "Бүгд" },
+            { id: "admin_acc", label: "Admin Acc" },
+            { id: "paid_post", label: "Төлбөртэй post" },
+            { id: "midman", label: "Мидман" }, // 👈 Түрээс байсныг Мидман болгов
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap border transition-all duration-200 ${
+                activeTab === tab.id
+                  ? "bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-600/15"
+                  : "bg-slate-800/40 border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80"
+              }`}
             >
-              <div className="bg-[#0F172A] border border-slate-800/60 rounded-2xl p-5 sm:p-6">
-                <h2 className="text-base font-semibold text-slate-100 mb-5">
-                  Шинэ бүтээгдэхүүн нэмэх
-                </h2>
-                <form onSubmit={handleSubmit} className="space-y-5">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-medium text-slate-400 mb-1.5">
-                        Гарчиг
-                      </label>
-                      <input
-                        required
-                        value={formData.title}
-                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/40 focus:ring-1 focus:ring-blue-500/20 transition-all"
-                        placeholder="Жишээ: Conqueror аккаунт"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-slate-400 mb-1.5">
-                        Game ID
-                      </label>
-                      <input
-                        required
-                        value={formData.gameId}
-                        onChange={(e) => setFormData({ ...formData, gameId: e.target.value })}
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/40 focus:ring-1 focus:ring-blue-500/20 transition-all"
-                        placeholder="5123456789"
-                      />
-                    </div>
-                  </div>
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-xs font-medium text-slate-400 mb-1.5">
-                        Ангилал
-                      </label>
-                      <select
-                        value={formData.category}
-                        onChange={(e) =>
-                          setFormData({ ...formData, category: e.target.value as "admin_acc" | "paid_post" | "rent" })
-                        }
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-sm text-slate-200 focus:outline-none focus:border-blue-500/40 focus:ring-1 focus:ring-blue-500/20 transition-all"
-                      >
-                        {categoryOptions.map((opt) => (
-                          <option key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-slate-400 mb-1.5">
-                        Төлөв
-                      </label>
-                      <select
-                        value={formData.status}
-                        onChange={(e) =>
-                          setFormData({ ...formData, status: e.target.value as "available" | "sold" | "rented" })
-                        }
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-sm text-slate-200 focus:outline-none focus:border-blue-500/40 focus:ring-1 focus:ring-blue-500/20 transition-all"
-                      >
-                        {statusOptions.map((opt) => (
-                          <option key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-slate-400 mb-1.5">
-                        Үндсэн үнэ (₮)
-                      </label>
-                      <input
-                        required
-                        type="number"
-                        value={formData.basePrice}
-                        onChange={(e) => setFormData({ ...formData, basePrice: e.target.value })}
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/40 focus:ring-1 focus:ring-blue-500/20 transition-all"
-                        placeholder="150000"
-                      />
-                    </div>
-                  </div>
+        {/* ХАЙЛТЫН ХЭСЭГ */}
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+            <input
+              type="text"
+              placeholder="Хайх..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/40 focus:ring-1 focus:ring-blue-500/20 transition-all"
+            />
+          </div>
+          <button className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80 text-slate-400 hover:text-slate-200">
+            <SlidersHorizontal className="w-4 h-4" />
+          </button>
+        </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-medium text-slate-400 mb-1.5">
-                        Tags (таслалаар тусгаарлана)
-                      </label>
-                      <input
-                        value={formData.tags}
-                        onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/40 focus:ring-1 focus:ring-blue-500/20 transition-all"
-                        placeholder="Conqueror, M416, Level 70"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-slate-400 mb-1.5">
-                        Messenger холбоос
-                      </label>
-                      <input
-                        required
-                        value={formData.messengerLink}
-                        onChange={(e) => setFormData({ ...formData, messengerLink: e.target.value })}
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/40 focus:ring-1 focus:ring-blue-500/20 transition-all"
-                        placeholder="https://m.me/yourpage"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Rent Prices */}
-                  <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1.5">
-                      Түрээсийн үнэ (₮) — хүсвэл бөглөнө
-                    </label>
-                    <div className="grid grid-cols-3 gap-3">
-                      <input
-                        type="number"
-                        value={formData.rent1h}
-                        onChange={(e) => setFormData({ ...formData, rent1h: e.target.value })}
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/40 focus:ring-1 focus:ring-blue-500/20 transition-all"
-                        placeholder="1 цаг"
-                      />
-                      <input
-                        type="number"
-                        value={formData.rent12h}
-                        onChange={(e) => setFormData({ ...formData, rent12h: e.target.value })}
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/40 focus:ring-1 focus:ring-blue-500/20 transition-all"
-                        placeholder="12 цаг"
-                      />
-                      <input
-                        type="number"
-                        value={formData.rent24h}
-                        onChange={(e) => setFormData({ ...formData, rent24h: e.target.value })}
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/40 focus:ring-1 focus:ring-blue-500/20 transition-all"
-                        placeholder="24 цаг"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Drag & Drop Upload */}
-                  <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1.5">
-                      Зураг оруулах
-                    </label>
-                    <div
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        setIsDragging(true);
-                      }}
-                      onDragLeave={() => setIsDragging(false)}
-                      onDrop={handleDrop}
-                      onClick={() => fileInputRef.current?.click()}
-                      className={`relative border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all duration-200 ${
-                        isDragging
-                          ? "border-blue-500/60 bg-blue-600/10"
-                          : "border-slate-700/50 bg-slate-800/30 hover:border-slate-600/60 hover:bg-slate-800/50"
-                      }`}
-                    >
-                      <Upload className="w-8 h-8 mx-auto text-slate-500 mb-2" />
-                      <p className="text-sm text-slate-400">
-                        Зургаа энд чирж оруулна уу эсвэл{" "}
-                        <span className="text-blue-400">сонгоно уу</span>
-                      </p>
-                      <p className="text-xs text-slate-600 mt-1">PNG, JPG, JPEG дэмжигдэнэ</p>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        multiple
-                        accept="image/*"
-                        onChange={handleFileInput}
-                        className="hidden"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Image Preview Grid with Watermark */}
-                  {uploadedImages.length > 0 && (
-                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-                      {uploadedImages.map((img, idx) => (
-                        <div
-                          key={idx}
-                          className="relative aspect-square rounded-xl overflow-hidden border border-slate-700/50 group"
-                        >
-                          <Image
-                            src={img}
-                            alt={`Upload ${idx + 1}`}
-                            fill
-                            className="object-cover"
-                            sizes="120px"
-                          />
-                          {/* Watermark */}
-                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <span className="text-[10px] font-bold text-white/20 tracking-wider uppercase rotate-[-12deg]">
-                              Pubg Accounts MN
-                            </span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removeImage(idx);
-                            }}
-                            className="absolute top-1.5 right-1.5 p-1 rounded-lg bg-slate-900/70 text-slate-300 hover:text-white hover:bg-red-600/80 transition-all opacity-0 group-hover:opacity-100"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))}
+        {/* БҮТЭЭГДЭХҮҮНИЙ ЖАГСААЛТ */}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20 text-slate-500 gap-2">
+            <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+            <span className="text-xs">Уншиж байна...</span>
+          </div>
+        ) : filteredProducts.length === 0 ? (
+          <div className="text-center py-16 text-sm text-slate-500">
+            Зар одоогоор олдсонгүй.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4">
+            {filteredProducts.map((product) => (
+              <div
+                key={product.id}
+                onClick={() => setSelectedProduct(product)}
+                className="bg-[#0F172A] border border-slate-800/60 rounded-2xl overflow-hidden shadow-xl cursor-pointer hover:border-slate-700/80 hover:bg-slate-800/40 transition-all"
+              >
+                {/* Зургийн хэсэг */}
+                <div className="relative aspect-[16/10] w-full bg-slate-950">
+                  {product.imageUrls && product.imageUrls.length > 0 ? (
+                    <Image
+                      src={product.imageUrls[0]}
+                      alt={product.title}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 480px) 100vw"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-xs text-slate-600">
+                      Зураггүй
                     </div>
                   )}
 
-                  <div className="flex items-center gap-3 pt-2">
-                    <button
-                      type="submit"
-                      disabled={formSubmitting}
-                      className="flex-1 py-3 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-slate-800 text-white font-semibold text-sm shadow-lg shadow-blue-900/25 hover:shadow-blue-900/40 transition-all duration-300 active:scale-[0.98] disabled:opacity-60"
-                    >
-                      {formSubmitting ? "Хадгалж байна..." : "Хадгалах"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowForm(false);
-                        setUploadedImages([]);
-                      }}
-                      className="px-6 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-slate-400 hover:text-slate-200 hover:bg-slate-700/60 transition-all text-sm font-medium"
-                    >
-                      Болих
-                    </button>
+                  <div className="absolute top-3 right-3">
+                    <span className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border backdrop-blur-md ${
+                      product.status === "available"
+                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                        : "bg-slate-700/20 text-slate-400 border-slate-600/30"
+                    }`}>
+                      ● {statusLabels[product.status] || product.status}
+                    </span>
                   </div>
-                </form>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                </div>
 
-        {/* Products Table */}
-        <div className="bg-[#0F172A] border border-slate-800/60 rounded-2xl overflow-hidden">
-          <div className="px-5 py-4 border-b border-slate-800/60">
-            <h2 className="text-base font-semibold text-slate-100 flex items-center gap-2">
-              <ShoppingBag className="w-4 h-4 text-blue-400" />
-              Бүтээгдэхүүний жагсаалт
-            </h2>
-          </div>
+                {/* Мэдээллийн хэсэг */}
+                <div className="p-4 space-y-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-bold text-base text-slate-100 truncate pr-2">
+                        {product.title}
+                      </h3>
+                      <span className="text-xs text-slate-500 font-mono shrink-0">
+                        ID: {product.gameId}
+                      </span>
+                    </div>
 
-          {loading ? (
-            <div className="p-8 space-y-3">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="h-12 shimmer rounded-lg" />
-              ))}
-            </div>
-          ) : products.length === 0 ? (
-            <div className="p-12 text-center">
-              <ShoppingBag className="w-10 h-10 text-slate-600 mx-auto mb-3" />
-              <p className="text-sm text-slate-500">Бүтээгдэхүүн олдсонгүй</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-slate-800/60">
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      ID
-                    </th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      Гарчиг
-                    </th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider hidden sm:table-cell">
-                      Game ID
-                    </th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      Ангилал
-                    </th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      Төлөв
-                    </th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      Үнэ
-                    </th>
-                    <th className="text-right px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      Үйлдэл
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {products.map((product) => (
-                    <tr
-                      key={product.id}
-                      className="border-b border-slate-800/40 hover:bg-slate-800/30 transition-colors"
-                    >
-                      <td className="px-5 py-3.5 text-sm text-slate-400 font-mono">
-                        #{product.id}
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-3">
-                          {product.imageUrls?.[0] && (
-                            <div className="relative w-9 h-9 rounded-lg overflow-hidden shrink-0 border border-slate-700/50">
-                              <Image
-                                src={product.imageUrls[0]}
-                                alt={product.title}
-                                fill
-                                className="object-cover"
-                                sizes="36px"
-                              />
-                            </div>
-                          )}
-                          <span className="text-sm text-slate-200 font-medium truncate max-w-[140px] sm:max-w-[200px]">
-                            {product.title}
+                    {product.tags && product.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 pt-1">
+                        {product.tags.map((tag, i) => (
+                          <span
+                            key={i}
+                            className="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-md"
+                          >
+                            {tag}
                           </span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-3.5 text-sm text-slate-400 font-mono hidden sm:table-cell">
-                        {product.gameId}
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <span className="text-xs text-slate-400">
-                          {categoryLabels[product.category]}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-1 text-[11px] font-semibold rounded-lg border ${statusColors[product.status]}`}
-                        >
-                          {statusLabels[product.status]}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3.5 text-sm text-slate-200 font-medium">
-                                                {new Intl.NumberFormat("mn-MN").format(product.basePrice)} ₮
-                      </td>
-                      <td className="px-5 py-3.5 text-right">
-                        <button
-                          onClick={() => handleDelete(product.id)}
-                          disabled={deleteLoading === product.id}
-                          className="p-2 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all disabled:opacity-50"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-800/60 flex items-end justify-between">
+                    <div>
+                      <span className="text-[10px] text-slate-500 block uppercase font-medium tracking-wider">
+                        Үндсэн үнэ
+                      </span>
+                      <span className="text-base font-black text-blue-400">
+                        {new Intl.NumberFormat("mn-MN").format(product.basePrice)} ₮
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Холбогдох товч */}
+                  <a
+                    href={product.messengerLink || MAIN_ADMIN_LINK}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-full py-2.5 rounded-xl bg-slate-800 text-slate-200 hover:bg-blue-600 hover:text-white font-bold text-xs transition-all duration-200 flex items-center justify-center gap-1.5 border border-slate-700/40 hover:border-blue-500"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    Холбогдох
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </main>
+
+      {/* ЗУРАГ ХАРДАГ МОДАЛ */}
+      <RentalModal
+        product={selectedProduct}
+        isOpen={selectedProduct !== null}
+        onClose={() => setSelectedProduct(null)}
+      />
     </div>
   );
 }
-
-                      
