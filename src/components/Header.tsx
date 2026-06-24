@@ -1,10 +1,8 @@
 "use client";
-
 import { useState, useEffect } from "react";
-import { Moon, Sun, MessageCircle, ShieldCheck } from "lucide-react";
+import { MessageCircle, ShieldCheck } from "lucide-react";
 
 export default function Header() {
-  const [isDark, setIsDark] = useState(true);
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -12,11 +10,6 @@ export default function Header() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
-  const toggleTheme = () => {
-    setIsDark(!isDark);
-    document.documentElement.classList.toggle("dark");
-  };
 
   return (
     <header
@@ -28,11 +21,9 @@ export default function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center gap-2.5">
-            <div className="relative">
-              <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-100">
-                Pubg Accounts MN
-              </h1>
-            </div>
+            <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-100">
+              Pubg Accounts MN
+            </h1>
             <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-950/60 border border-blue-800/40">
               <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
               <span className="text-[10px] font-semibold text-blue-300 uppercase tracking-wider">
@@ -41,15 +32,8 @@ export default function Header() {
             </div>
           </div>
 
-          {/* Right Actions */}
+          {/* Right Actions - Зөвхөн Messenger */}
           <div className="flex items-center gap-2">
-            <button
-              onClick={toggleTheme}
-              className="p-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-slate-300 hover:text-white hover:bg-slate-700/60 transition-all duration-200"
-              aria-label="Toggle theme"
-            >
-              {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </button>
             <a
               href="https://www.facebook.com/share/18zFCFvwCw/"
               target="_blank"
