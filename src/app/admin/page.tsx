@@ -19,6 +19,7 @@ import {
 
 const ADMIN_PASSWORD = "admin123";
 
+// 🔥 АЛДАА ЗАССАН: midman биш rent болгосон!
 const categoryOptions = [
   { value: "admin_acc", label: "Admin Acc" },
   { value: "paid_post", label: "Төлбөртэй post" },
@@ -40,7 +41,6 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   
-  // Төлөвүүд
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState<number | null>(null);
 
@@ -74,7 +74,7 @@ export default function AdminPage() {
       }
     } catch (err) {
       console.error(err);
-    } finally {
+    } finally { // 🔥 АЛДАА ЗАССАН: file гэснийг finally болгосон!
       setLoading(false);
     }
   }
@@ -116,7 +116,6 @@ export default function AdminPage() {
     }
   };
 
-  // 🔥 ПОСТЛОХОД УНШИЖ БАЙГААГ ИЛТ МЭДЭГДЭХ ХЭСЭГ
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
@@ -155,7 +154,7 @@ export default function AdminPage() {
         setTimeout(() => {
           setShowForm(false);
           setFormSuccess("");
-          fetchProducts(); // Жагсаалтыг шинэчлэх
+          fetchProducts(); 
         }, 1000);
       } else {
         setFormError("Зар нэмэхэд алдаа гарлаа. Сервер хариу өгсөнгүй.");
@@ -167,7 +166,6 @@ export default function AdminPage() {
     }
   };
 
-  // 🔥 ХУУДАС РЕФРЕШ ХИЙЛГҮЙ ШУУД НҮДЭН ДЭЭР УСТГАДАГ ХЭСЭГ
   const handleDelete = async (e: React.MouseEvent, id: any) => {
     e.preventDefault();
     e.stopPropagation();
@@ -181,7 +179,6 @@ export default function AdminPage() {
       });
 
       if (res.ok) {
-        // Дэлгэц дээрх жагсаалтаас Пязда гэж байгаад шууд хасна!
         setProducts((prev) => prev.filter((p) => p.id !== id));
       } else {
         alert("Устгаж чадсангүй, сервер дээр алдаа гарлаа.");
@@ -329,17 +326,8 @@ export default function AdminPage() {
 
                 <div className="flex justify-end gap-2 pt-2">
                   <button type="button" disabled={isSubmitting} onClick={() => setShowForm(false)} className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 disabled:opacity-50">Цуцлах</button>
-                  
-                  {/* 🔥 АЙМАР УХААЛАГ УНШИЖ БАЙНА ГЭДЭГ ТОГТООГЧ ТОГЛОГЧ */}
                   <button type="submit" disabled={isSubmitting} className="px-5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 min-w-[100px] flex items-center justify-center gap-1.5 transition-all disabled:opacity-70">
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        Нийтэлж байна...
-                      </>
-                    ) : (
-                      "Нийтлэх"
-                    )}
+                    {isSubmitting ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Нийтэлж байна...</> : "Нийтлэх"}
                   </button>
                 </div>
               </form>
@@ -381,13 +369,12 @@ export default function AdminPage() {
                       <td className="px-5 py-3.5 text-xs text-slate-400">
                         {product.category === "admin_acc" && "Admin Acc"}
                         {product.category === "paid_post" && "Төлбөртэй post"}
-                        {product.category === "midman" && "Мидман"}
+                        {product.category === "rent" && "Мидман"}
                       </td>
                       <td className="px-5 py-3.5 font-bold text-blue-400">
                         {new Intl.NumberFormat("mn-MN").format(product.basePrice)} ₮
                       </td>
                       <td className="px-5 py-3.5 text-right">
-                        {/* 🔥 ДЭЛГЭЦНЭЭС ШУУД ХУСДАГ УСТГАХ ТОБЧ */}
                         <button 
                           type="button"
                           onClick={(e) => handleDelete(e, product.id)} 
