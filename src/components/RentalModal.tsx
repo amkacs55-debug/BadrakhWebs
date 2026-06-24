@@ -215,7 +215,7 @@ export default function RentalModal({ product, onClose }: RentalModalProps) {
                       src={images[currentImageIndex]}
                       alt={`${product.title} - ${currentImageIndex + 1}`}
                       fill
-                      className="object-contain"
+                      className="object-cover"
                       sizes="(max-width: 768px) 100vw, 672px"
                     />
 
