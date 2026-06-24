@@ -3,23 +3,27 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Search, SlidersHorizontal, MessageCircle, BadgeCheck, Loader2 } from "lucide-react";
+import RentalModal from "@/components/RentalModal";
 
-// 1. Таны Фэйсбүүк профайл эсвэл Пэйж хуудасны линк
-const ADMIN_FACEBOOK_LINK = "https://www.facebook.com/share/1ES4ks43Bp/";
+// Холбогдох хүмүүсийн мэдээлэл (Админ болон Мидманууд)
+const CONTACTS = [
+  { name: "Админ Бадрах", url: "https://www.facebook.com/share/1ES4ks43Bp/" },
+  { name: "Мидман Төгөлдөр", url: "https://www.facebook.com/share/1btYKT6PTF/" },
+  { name: "Мидман Жаргалсайхан", url: "https://www.facebook.com/share/18zqJRJs2s/?mibextid=wwXIfr" },
+];
+
+const MAIN_ADMIN_LINK = CONTACTS[0].url;
 
 export interface Product {
   id: number;
   title: string;
   gameId: string;
-  category: "admin_acc" | "paid_post" | "rent";
+  category: "admin_acc" | "paid_post" | "midman";
   status: "available" | "sold" | "rented";
   tags: string[];
   basePrice: number;
   messengerLink: string;
   imageUrls: string[];
-  rent1h?: number | null;
-  rent12h?: number | null;
-  rent24h?: number | null;
 }
 
 export default function HomePage() {
@@ -27,6 +31,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   useEffect(() => {
     async function fetchProducts() {
@@ -62,7 +67,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-[#060B18] text-slate-100 pb-12">
       
-      {/* ДЭЭД ХЭСЭГ (HEADER) */}
+      {/* HEADER */}
       <header className="sticky top-0 z-50 backdrop-blur-md bg-[#060B18]/80 border-b border-slate-800/40">
         <div className="max-w-md mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -75,43 +80,43 @@ export default function HomePage() {
             </span>
           </div>
 
-          {/* Баруун дээд талын дугуйлсан Админтай холбогдох товч */}
           <a
-            href={ADMIN_FACEBOOK_LINK}
+            href={MAIN_ADMIN_LINK}
             target="_blank"
             rel="noopener noreferrer"
             className="p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/50 text-slate-300 hover:text-blue-400 hover:border-blue-500/40 transition-all duration-200 flex items-center justify-center"
-            title="Админтай холбогдох"
           >
-            <svg className="w-5 h-5 fill-current text-slate-300 hover:text-blue-400" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
               <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
             </svg>
           </a>
         </div>
       </header>
 
-      {/* ҮНДСЭН АГУУЛГА */}
       <main className="max-w-md mx-auto px-4 pt-6 space-y-6">
         
-        {/* HERO ХЭСЭГ */}
-        <div className="space-y-3">
+        {/* HERO ХЭСЭГ (3 холбоо барих товч) */}
+        <div className="space-y-4">
           <h1 className="text-xl font-extrabold text-white tracking-tight">
-            PUBG Mobile Аккаунт & <span className="text-blue-400">Түрээс</span>
+            PUBG Mobile Аккаунт & <span className="text-blue-400">Мидман</span>
           </h1>
           
-          {/* Хуучин текст байсан хэсэгт орсон Админтай холбогдох FB товчлуур */}
-          <a
-            href={ADMIN_FACEBOOK_LINK}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full py-2.5 px-4 rounded-xl bg-[#1877F2]/10 border border-[#1877F2]/30 text-slate-200 hover:bg-[#1877F2]/20 hover:text-white transition-all duration-200 flex items-center justify-center gap-2 text-sm font-semibold tracking-wide"
-          >
-            {/* Facebook Logo */}
-            <svg className="w-5 h-5 fill-current text-[#1877F2]" viewBox="0 0 24 24">
-              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-            </svg>
-            Админтай холбогдох
-          </a>
+          <div className="flex flex-col gap-2.5">
+            {CONTACTS.map((person, idx) => (
+              <a
+                key={idx}
+                href={person.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-2.5 px-4 rounded-xl bg-[#1877F2]/10 border border-[#1877F2]/30 text-slate-200 hover:bg-[#1877F2]/20 hover:text-white transition-all duration-200 flex items-center justify-center gap-2.5 text-sm font-semibold tracking-wide"
+              >
+                <svg className="w-5 h-5 fill-current text-[#1877F2] shrink-0" viewBox="0 0 24 24">
+                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                </svg>
+                {person.name}
+              </a>
+            ))}
+          </div>
         </div>
 
         {/* ТАВУУД / ФИЛТЕР */}
@@ -120,7 +125,7 @@ export default function HomePage() {
             { id: "all", label: "Бүгд" },
             { id: "admin_acc", label: "Admin Acc" },
             { id: "paid_post", label: "Төлбөртэй post" },
-            { id: "rent", label: "Түрээс" },
+            { id: "midman", label: "Мидман" },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -153,7 +158,7 @@ export default function HomePage() {
           </button>
         </div>
 
-        {/* БҮТЭЭГДЭХҮҮНИЙ ЖАГСААЛТ */}
+        {/* ЖАГСААЛТ */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 text-slate-500 gap-2">
             <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
@@ -168,9 +173,9 @@ export default function HomePage() {
             {filteredProducts.map((product) => (
               <div
                 key={product.id}
-                className="bg-[#0F172A] border border-slate-800/60 rounded-2xl overflow-hidden shadow-xl"
+                onClick={() => setSelectedProduct(product)}
+                className="bg-[#0F172A] border border-slate-800/60 rounded-2xl overflow-hidden shadow-xl cursor-pointer hover:border-slate-700/80 hover:bg-slate-800/40 transition-all"
               >
-                {/* Зургийн хэсэг */}
                 <div className="relative aspect-[16/10] w-full bg-slate-950">
                   {product.imageUrls && product.imageUrls.length > 0 ? (
                     <Image
@@ -186,7 +191,6 @@ export default function HomePage() {
                     </div>
                   )}
 
-                  {/* Төлвийн пайз */}
                   <div className="absolute top-3 right-3">
                     <span className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border backdrop-blur-md ${
                       product.status === "available"
@@ -198,26 +202,21 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                {/* Мэдээллийн хэсэг */}
                 <div className="p-4 space-y-3">
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
-                      <h3 className="font-bold text-base text-slate-100 truncate">
+                      <h3 className="font-bold text-base text-slate-100 truncate pr-2">
                         {product.title}
                       </h3>
-                      <span className="text-xs text-slate-500 font-mono">
+                      <span className="text-xs text-slate-500 font-mono shrink-0">
                         ID: {product.gameId}
                       </span>
                     </div>
 
-                    {/* Тагууд */}
                     {product.tags && product.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1 pt-1">
                         {product.tags.map((tag, i) => (
-                          <span
-                            key={i}
-                            className="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-md"
-                          >
+                          <span key={i} className="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-md">
                             {tag}
                           </span>
                         ))}
@@ -225,7 +224,6 @@ export default function HomePage() {
                     )}
                   </div>
 
-                  {/* Үнийн мэдээлэл */}
                   <div className="pt-2 border-t border-slate-800/60 flex items-end justify-between">
                     <div>
                       <span className="text-[10px] text-slate-500 block uppercase font-medium tracking-wider">
@@ -235,20 +233,13 @@ export default function HomePage() {
                         {new Intl.NumberFormat("mn-MN").format(product.basePrice)} ₮
                       </span>
                     </div>
-
-                    {product.category === "rent" && (product.rent1h || product.rent24h) && (
-                      <div className="text-right text-xs text-slate-400 space-y-0.5">
-                        {product.rent1h && <div>1ц: {product.rent1h}₮</div>}
-                        {product.rent24h && <div>24ц: {product.rent24h}₮</div>}
-                      </div>
-                    )}
                   </div>
 
-                  {/* Карт бүрийн доорх холбогдох товч */}
                   <a
-                    href={product.messengerLink || ADMIN_FACEBOOK_LINK}
+                    href={product.messengerLink || MAIN_ADMIN_LINK}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
                     className="w-full py-2.5 rounded-xl bg-slate-800 text-slate-200 hover:bg-blue-600 hover:text-white font-bold text-xs transition-all duration-200 flex items-center justify-center gap-1.5 border border-slate-700/40 hover:border-blue-500"
                   >
                     <MessageCircle className="w-4 h-4" />
@@ -260,6 +251,13 @@ export default function HomePage() {
           </div>
         )}
       </main>
+
+      {/* ЗУРАГ ХАРДАГ МОДАЛ */}
+      <RentalModal
+        product={selectedProduct as any}
+        isOpen={selectedProduct !== null}
+        onClose={() => setSelectedProduct(null)}
+      />
     </div>
   );
 }
