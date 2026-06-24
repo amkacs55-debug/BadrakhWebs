@@ -70,7 +70,7 @@ export default function HomePage() {
         <div className="max-w-md mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="font-bold text-base tracking-tight text-white">
-              Pubg Accounts MN
+              Badrakh MN
             </span>
             <span className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-md uppercase tracking-wider">
               <BadgeCheck className="w-3 h-3 fill-blue-400 text-[#060B18]" />
