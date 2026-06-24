@@ -266,11 +266,11 @@ export default function HomePage() {
       </main>
 
       {/* ЗУРАГ ХАРДАГ МОДАЛ */}
-      <RentalModal
-        product={selectedProduct}
-        isOpen={selectedProduct !== null}
-        onClose={() => setSelectedProduct(null)}
-      />
-    </div>
+<RentalModal
+  product={selectedProduct as any} // 👈 'as any' гэж бичиж алдааг алгасна
+  isOpen={selectedProduct !== null}
+  onClose={() => setSelectedProduct(null)}
+/>
+  </div>
   );
 }
