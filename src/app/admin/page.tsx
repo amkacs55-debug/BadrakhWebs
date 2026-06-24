@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase"; // Саяны үүсгэсэн supabase-ээ импортлов
 
 interface Product {
   id: number;
@@ -15,9 +16,8 @@ interface Product {
 }
 
 export default function AdminPage() {
-  // Нэвтрэх хэсгийн State-үүд
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [username, setUsername] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null); // null = уншиж байна
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
 
@@ -31,30 +31,51 @@ export default function AdminPage() {
   const [tagsInput, setTagsInput] = useState("");
   const [images, setImages] = useState<string[]>([]);
   
+  // Чиний route.ts-д зориулж Rent-ийн үнүүдийг нэмэв
+  const [rent1h, setRent1h] = useState("");
+  const [rent12h, setRent12h] = useState("");
+  const [rent24h, setRent24h] = useState("");
+
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Хуудас ачаалагдах үед Supabase-д нэвтэрсэн хэрэглэгч байгаа эсэхийг шалгана
   useEffect(() => {
-    // Хуудсыг refresh хийх үед нэвтэрсэн эсэхийг шалгах
-    const auth = sessionStorage.getItem("isAdminLoggedIn");
-    if (auth === "true") {
-      setIsLoggedIn(true);
-      fetchProducts();
-    }
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setIsLoggedIn(true);
+        fetchProducts();
+      } else {
+        setIsLoggedIn(false);
+      }
+    };
+    checkUser();
   }, []);
 
-  const handleLogin = (e: React.FormEvent) => {
+  // Supabase Auth Логин хийх функц
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // ⚠️ АНХААР: Нэвтрэх нэр болон нууц үгээ энд өөрийнхөөрөө солиорой!
-    if (username === "ADMIN_USERNAME" && password === "ADMIN_PASSWORD") {
-      sessionStorage.setItem("isAdminLoggedIn", "true");
+    setLoginError("");
+    
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      setLoginError("Имэйл эсвэл нууц үг буруу байна: " + error.message);
+    } else if (data.user) {
       setIsLoggedIn(true);
-      setLoginError("");
       fetchProducts();
-    } else {
-      setLoginError("Нэвтрэх нэр эсвэл нууц үг буруу байна.");
     }
+  };
+
+  // Supabase-аас гарах функц
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setIsLoggedIn(false);
   };
 
   const fetchProducts = async () => {
@@ -95,10 +116,9 @@ export default function AdminPage() {
 
       const uploadedUrls = await Promise.all(uploadPromises);
       const validUrls = uploadedUrls.filter((url) => url !== undefined) as string[];
-      
       setImages((prev) => [...prev, ...validUrls]);
     } catch (err) {
-      setError("Зураг хуулахад алдаа гарлаа. Upload Preset-ээ зөв тохируулсан эсэхээ шалгаарай.");
+      setError("Зураг хуулахад алдаа гарлаа.");
       console.error(err);
     } finally {
       setUploading(false);
@@ -129,6 +149,9 @@ export default function AdminPage() {
           messengerLink,
           imageUrls: images,
           tags,
+          rent1h: category === "rent" ? Number(rent1h) : null,
+          rent12h: category === "rent" ? Number(rent12h) : null,
+          rent24h: category === "rent" ? Number(rent24h) : null,
         }),
       });
 
@@ -140,11 +163,14 @@ export default function AdminPage() {
       setMessengerLink("");
       setTagsInput("");
       setImages([]);
+      setRent1h("");
+      setRent12h("");
+      setRent24h("");
       
       fetchProducts(); 
       alert("Зар амжилттай нийтлэгдлээ!");
     } catch (err) {
-      setError("Зар нэмэхэд алдаа гарлаа. Сервер хариу өгсөнгүй.");
+      setError("Зар нэмэхэд алдаа гарлаа.");
       console.error(err);
     } finally {
       setLoading(false);
@@ -155,64 +181,47 @@ export default function AdminPage() {
     if (!confirm("Энэ зарыг устгахдаа итгэлтэй байна уу?")) return;
 
     try {
-      const res = await fetch(`/api/products?id=${id}`, {
-        method: "DELETE",
-      });
-
+      const res = await fetch(`/api/products?id=${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Устгаж чадсангүй");
-
       fetchProducts(); 
       alert("Амжилттай устгагдлаа!");
     } catch (err) {
       alert("Устгаж чадсангүй, сервер дээр алдаа гарлаа.");
-      console.error(err);
     }
   };
 
-  const handleLogout = () => {
-    sessionStorage.removeItem("isAdminLoggedIn");
-    setIsLoggedIn(false);
-  };
+  if (isLoggedIn === null) {
+    return <div className="min-h-screen bg-gray-950 flex items-center justify-center text-gray-400">Уншиж байна...</div>;
+  }
 
-  // Хэрэв нэвтрээгүй бол Login формыг харуулна
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
         <form onSubmit={handleLogin} className="bg-gray-900 p-8 rounded-2xl border border-gray-800 w-full max-w-md space-y-6 shadow-2xl">
-          <h2 className="text-2xl font-bold text-white text-center">Админ Нэвтрэх</h2>
-          
+          <h2 className="text-2xl font-bold text-white text-center">Supabase Админ Нэвтрэх</h2>
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Нэвтрэх нэр</label>
-            <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500" required autoFocus />
+            <label className="block text-sm font-medium text-gray-300 mb-2">Админ Имэйл</label>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500" required placeholder="admin@example.com" />
           </div>
-          
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">Нууц үг</label>
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500" required />
           </div>
-
           {loginError && <p className="text-red-500 text-sm text-center">{loginError}</p>}
-
-          <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition duration-200">
-            Нэвтрэх
-          </button>
+          <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition">Нэвтрэх</button>
         </form>
       </div>
     );
   }
 
-  // Нэвтэрсэн үед харагдах Админ хэсэг
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100 p-4 md:p-6">
       <div className="max-w-5xl mx-auto space-y-8">
         <div className="flex justify-between items-center border-b border-gray-800 pb-4">
           <h1 className="text-2xl font-bold">Хянах самбар</h1>
-          <button onClick={handleLogout} className="text-sm bg-red-900/30 hover:bg-red-900/50 text-red-400 px-4 py-2 rounded-lg border border-red-900/50 transition">
-            Гарах
-          </button>
+          <button onClick={handleLogout} className="text-sm bg-red-900/30 hover:bg-red-900/50 text-red-400 px-4 py-2 rounded-lg border border-red-900/50 transition">Гарах</button>
         </div>
 
-        {/* Зар нэмэх форм */}
         <form onSubmit={handleSubmit} className="bg-gray-900 p-6 rounded-xl border border-gray-800 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -231,6 +240,7 @@ export default function AdminPage() {
               <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500">
                 <option value="account">Admin Acc</option>
                 <option value="topup">Paid Post</option>
+                <option value="rent">Rent (Түрээс)</option>
               </select>
             </div>
             <div>
@@ -253,26 +263,40 @@ export default function AdminPage() {
             </div>
           </div>
 
+          {/* Хэрэв Түрээс сонгогдвол цагийн үнүүдийг харуулна */}
+          {category === "rent" && (
+            <div className="p-4 bg-gray-950 rounded-xl border border-gray-800 grid grid-cols-3 gap-3 animate-fadeIn">
+              <div>
+                <label className="block text-xs font-medium mb-1 text-gray-400">1 цаг (₮)</label>
+                <input type="number" value={rent1h} onChange={(e) => setRent1h(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-white text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1 text-gray-400">12 цаг (₮)</label>
+                <input type="number" value={rent12h} onChange={(e) => setRent12h(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-white text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1 text-gray-400">24 цаг (₮)</label>
+                <input type="number" value={rent24h} onChange={(e) => setRent24h(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-2 py-1.5 text-white text-sm" />
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium mb-1">Тагууд (Таслалаар тусгаарлана уу)</label>
             <input type="text" value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} placeholder="m416, max, glacier" className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500" />
           </div>
 
-          {/* Зураг хуулах хэсэг */}
           <div>
-            <label className="block text-sm font-medium mb-2">Зургууд (Олноор нь сонгож болно)</label>
+            <label className="block text-sm font-medium mb-2">Зургууд</label>
             <div className="flex flex-wrap gap-3 items-center">
               <label className="cursor-pointer bg-gray-800 border-2 border-dashed border-gray-700 hover:border-blue-500 rounded-xl p-4 flex flex-col items-center justify-center w-24 h-24 transition">
                 <span className="text-xs text-gray-400 text-center">{uploading ? "Уншиж байна..." : "Хуулах"}</span>
                 <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" disabled={uploading} />
               </label>
-
               {images.map((url, idx) => (
                 <div key={idx} className="relative w-24 h-24 rounded-xl overflow-hidden border border-gray-800">
-                  <img src={url} alt="Uploaded" className="w-full h-full object-cover" />
-                  <button type="button" onClick={() => removeImage(idx)} className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
-                    ✕
-                  </button>
+                  <img src={url} alt="" className="w-full h-full object-cover" />
+                  <button type="button" onClick={() => removeImage(idx)} className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">✕</button>
                 </div>
               ))}
             </div>
@@ -288,7 +312,6 @@ export default function AdminPage() {
           </div>
         </form>
 
-        {/* Заруудын жагсаалт ба Устгах хэсэг - УТАСАН ДЭЭР ГҮЙЛГЭЖ ХАРАХААР ЗАСАВ */}
         <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[600px]">
             <thead>
@@ -304,11 +327,7 @@ export default function AdminPage() {
                 <tr key={product.id} className="hover:bg-gray-800/30 transition">
                   <td className="p-4 flex items-center gap-3">
                     <div className="w-12 h-12 rounded-lg bg-gray-800 overflow-hidden flex-shrink-0">
-                      {product.imageUrls?.[0] ? (
-                        <img src={product.imageUrls[0]} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-xs text-gray-600">No Img</div>
-                      )}
+                      {product.imageUrls?.[0] ? <img src={product.imageUrls[0]} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-xs text-gray-600">No Img</div>}
                     </div>
                     <div>
                       <div className="font-semibold text-gray-200">{product.title}</div>
@@ -318,9 +337,7 @@ export default function AdminPage() {
                   <td className="p-4 capitalize text-gray-400">{product.category}</td>
                   <td className="p-4 font-medium text-blue-400">₮{product.basePrice.toLocaleString()}</td>
                   <td className="p-4 text-center">
-                    <button onClick={() => handleDelete(product.id)} className="bg-red-950/40 hover:bg-red-900/60 border border-red-900/50 text-red-400 px-3 py-1.5 rounded-lg transition text-xs font-medium">
-                      Устгах
-                    </button>
+                    <button onClick={() => handleDelete(product.id)} className="bg-red-950/40 hover:bg-red-900/60 border border-red-900/50 text-red-400 px-3 py-1.5 rounded-lg transition text-xs font-medium">Устгах</button>
                   </td>
                 </tr>
               ))}
@@ -336,3 +353,4 @@ export default function AdminPage() {
     </div>
   );
 }
+
