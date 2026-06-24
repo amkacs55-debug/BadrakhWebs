@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Search, MessageCircle, BadgeCheck, Loader2, ShieldCheck } from "lucide-react";
 import RentalModal from "@/components/RentalModal";
+import type { Product } from "@/components/ProductCard";
 
 // 🚀 БАТАЛГААТ 3 АДМИН БОЛОН МИДМАНЫ ЛИНКҮҮД
 const CONTACTS = [
@@ -11,18 +12,6 @@ const CONTACTS = [
   { name: "Мидман Төгөлдөр", url: "https://www.facebook.com/share/1btYKT6PTF/" },
   { name: "Мидман Жаргалсайхан", url: "https://www.facebook.com/share/18zqJRJs2s/?mibextid=wwXIfr" },
 ];
-
-export interface Product {
-  id: number;
-  title: string;
-  gameId: string;
-  category: "admin_acc" | "paid_post" | "midman";
-  status: "available" | "sold" | "rented";
-  tags: string[];
-  basePrice: number;
-  messengerLink: string;
-  imageUrls: string[];
-}
 
 export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -112,8 +101,8 @@ export default function HomePage() {
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
           {[
             { id: "all", label: "Бүгд" },
-            { id: "admin_acc", label: "Admin Acc" },
-            { id: "paid_post", label: "Төлбөртэй post" },
+            { id: "account", label: "Admin Acc" },
+            { id: "topup", label: "Төлбөртэй post" },
             { id: "midman", label: "Мидман" },
           ].map((tab) => (
             <button
@@ -237,13 +226,13 @@ export default function HomePage() {
         )}
       </main>
 
-      {/* 🚀 БҮТЭЛГҮЙТЭЛ (BUILD ERROR) ЗАССАН ХЭСЭГ */}
       {selectedProduct && (
         <RentalModal
-          product={selectedProduct as any}
+          product={selectedProduct}
           onClose={() => setSelectedProduct(null)}
         />
       )}
     </div>
   );
 }
+
