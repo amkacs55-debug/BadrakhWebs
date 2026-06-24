@@ -5,7 +5,7 @@ import Image from "next/image";
 import { Search, SlidersHorizontal, MessageCircle, BadgeCheck, Loader2 } from "lucide-react";
 
 // 1. Таны Фэйсбүүк профайл эсвэл Пэйж хуудасны линк (Энд солиорой)
-const ADMIN_FACEBOOK_LINK = "https://www.facebook.com/your_facebook_profile";
+const ADMIN_FACEBOOK_LINK = "https://www.facebook.com/share/1ES4ks43Bp/";
 
 export interface Product {
   id: number;
@@ -15,7 +15,7 @@ export interface Product {
   status: "available" | "sold" | "rented";
   tags: string[];
   basePrice: number;
-  messengerLink: string; // Датабааз дахь талбарын нэр хэвээр үлдсэн, FB линк орж ирнэ
+  messengerLink: string;
   imageUrls: string[];
   rent1h?: number | null;
   rent12h?: number | null;
@@ -45,7 +45,6 @@ export default function HomePage() {
     fetchProducts();
   }, []);
 
-  // Ангилал болон хайлтын шүүлтүүр
   const filteredProducts = products.filter((product) => {
     const matchesTab = activeTab === "all" || product.category === activeTab;
     const matchesSearch =
@@ -76,15 +75,17 @@ export default function HomePage() {
             </span>
           </div>
 
-          {/* Баруун дээд талын дугуйлсан Админтай холбогдох товч (Фэйсбүүк линк) */}
+          {/* Баруун дээд талын дугуйлсан Админтай холбогдох товч */}
           <a
-            href={ADMIN_FACEBOOK_LINK}
+            href={https://www.facebook.com/share/1ES4ks43Bp/}
             target="_blank"
             rel="noopener noreferrer"
             className="p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/50 text-slate-300 hover:text-blue-400 hover:border-blue-500/40 transition-all duration-200 flex items-center justify-center"
             title="Админтай холбогдох"
           >
-            <MessageCircle className="w-5 h-5" />
+            <svg className="w-5 h-5 fill-current text-slate-300 hover:text-blue-400" viewBox="0 0 24 24">
+              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+            </svg>
           </a>
         </div>
       </header>
@@ -92,20 +93,24 @@ export default function HomePage() {
       {/* ҮНДСЭН АГУУЛГА */}
       <main className="max-w-md mx-auto px-4 pt-6 space-y-6">
         
-        {/* HERO ТЕКСТҮҮД */}
-        <div className="space-y-2">
+        {/* HERO ХЭСЭГ */}
+        <div className="space-y-3">
           <h1 className="text-xl font-extrabold text-white tracking-tight">
             PUBG Mobile Аккаунт & <span className="text-blue-400">Түрээс</span>
           </h1>
           
-          {/* Дарвал админы фэйсбүүк рүү шууд үсрэх текст */}
+          {/* ⚡ ШИНЭЧЛЭГДСЭН: Нарийнхан урт Фэйсбүүк логотой Админтай холбогдох товчлуур */}
           <a
-            href={ADMIN_FACEBOOK_LINK}
+            href={https://www.facebook.com/share/1ES4ks43Bp/}
             target="_blank"
             rel="noopener noreferrer"
-            className="block text-sm text-slate-400 hover:text-blue-400 transition-colors cursor-pointer border-b border-dashed border-slate-700 pb-2 leading-relaxed"
+            className="w-full py-2 px-4 rounded-xl bg-[#1877F2]/10 border border-[#1877F2]/30 text-slate-200 hover:bg-[#1877F2]/20 hover:text-white transition-all duration-200 flex items-center justify-center gap-2 text-xs font-semibold tracking-wide"
           >
-            Баталгаатай, аюулгүй PUBG Mobile аккаунт худалдан авалт болон түрээсийн үйлчилгээ
+            {/* Facebook Logo */}
+            <svg className="w-4 h-4 fill-current text-[#1877F2]" viewBox="0 0 24 24">
+              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+            </svg>
+            Админтай холбогдох
           </a>
         </div>
 
@@ -239,15 +244,15 @@ export default function HomePage() {
                     )}
                   </div>
 
-                  {/* Фэйсбүүк рүү үсрэх товчлуур */}
+                  {/* Карт бүрийн доорх холбогдох товч */}
                   <a
-                    href={product.messengerLink || https://www.facebook.com/share/18zFCFvwCw/}
+                    href={product.messengerLink || https://www.facebook.com/share/1ES4ks43Bp/}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-full py-2.5 rounded-xl bg-slate-800 text-slate-200 hover:bg-blue-600 hover:text-white font-bold text-xs transition-all duration-200 flex items-center justify-center gap-1.5 border border-slate-700/40 hover:border-blue-500"
                   >
                     <MessageCircle className="w-4 h-4" />
-                    Фэйсбүүкээр холбогдох
+                    Холбогдох
                   </a>
                 </div>
               </div>
