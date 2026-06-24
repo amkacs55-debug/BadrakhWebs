@@ -5,8 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
   ArrowUpDown,
-  User,
-  Gem,
+  UserCheck, // 👈 Баталгаажсан админ аккаунтын дүрс
+  FileText,  // 👈 Төлбөртэй зарын (пост) дүрс
   Clock,
   ChevronDown,
   HelpCircle,
@@ -18,13 +18,15 @@ import RentalModal from "@/components/RentalModal";
 import SkeletonCard from "@/components/SkeletonCard";
 import type { Product } from "@/components/ProductCard";
 
-type Category = "all" | "account" | "topup" | "rent";
+// 1. Ангиллын түлхүүр үгсийг шинэчилсэн
+type Category = "all" | "admin_acc" | "paid_post" | "rent";
 type SortOption = "newest" | "price-asc" | "price-desc";
 
+// 2. Табуудын нэршил болон дүрсүүдийг яг таны хүссэнээр өөрчлөв
 const tabs: { key: Category; label: string; icon: React.ReactNode }[] = [
   { key: "all", label: "Бүгд", icon: <ShoppingBag className="w-4 h-4" /> },
-  { key: "account", label: "Аккаунт", icon: <User className="w-4 h-4" /> },
-  { key: "topup", label: "Цэнэглэлт", icon: <Gem className="w-4 h-4" /> },
+  { key: "admin_acc", label: "Admin Acc", icon: <UserCheck className="w-4 h-4" /> },
+  { key: "paid_post", label: "Төлбөртэй post", icon: <FileText className="w-4 h-4" /> },
   { key: "rent", label: "Түрээс", icon: <Clock className="w-4 h-4" /> },
 ];
 
@@ -79,6 +81,7 @@ export default function HomePage() {
       if (searchQuery) params.set("search", searchQuery);
       if (sortBy !== "newest") params.set("sort", sortBy);
 
+      // Эндээс Supabase API руу шинээр өөрчилсөн category-ууд ('admin_acc', 'paid_post') шууд зөв дамжина
       const res = await fetch(`/api/products?${params.toString()}`);
       const data = await res.json();
       setProducts(data);
