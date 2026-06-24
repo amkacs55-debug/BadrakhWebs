@@ -207,7 +207,7 @@ export default function RentalModal({ product, onClose }: RentalModalProps) {
               {images.length > 0 && (
                 <div className="px-5 pb-4">
                   <div
-                    className="relative w-full aspect-[3/4] bg-slate-950 rounded-xl overflow-hidden"
+                    className="relative w-full aspect-[16/9] rounded-xl overflow-hidden"
                     onTouchStart={handleTouchStart}
                     onTouchEnd={handleTouchEnd}
                   >
