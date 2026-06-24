@@ -20,9 +20,10 @@ import type { Product } from "@/components/ProductCard";
 
 const ADMIN_PASSWORD = "admin123";
 
+// 1. Ангиллын сонголтуудыг шинэ утгаар солив
 const categoryOptions = [
-  { value: "account", label: "Аккаунт" },
-  { value: "topup", label: "Цэнэглэлт" },
+  { value: "admin_acc", label: "Admin Acc" },
+  { value: "paid_post", label: "Төлбөртэй post" },
   { value: "rent", label: "Түрээс" },
 ];
 
@@ -43,11 +44,11 @@ export default function AdminPage() {
   const [deleteLoading, setDeleteLoading] = useState<number | null>(null);
   const [notification, setNotification] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
-  // Form state
+  // 2. Form state-ийн category төрлийг шинэчлэв
   const [formData, setFormData] = useState({
     title: "",
     gameId: "",
-    category: "account" as "account" | "topup" | "rent",
+    category: "admin_acc" as "admin_acc" | "paid_post" | "rent",
     status: "available" as "available" | "sold" | "rented",
     tags: "",
     basePrice: "",
@@ -177,7 +178,7 @@ export default function AdminPage() {
         setFormData({
           title: "",
           gameId: "",
-          category: "account",
+          category: "admin_acc", // 👈 Амжилттай хадгалагдсаны дараа admin_acc-аар reset хийнэ
           status: "available",
           tags: "",
           basePrice: "",
@@ -211,9 +212,10 @@ export default function AdminPage() {
     rented: "text-indigo-400 bg-indigo-500/15 border-indigo-500/30",
   };
 
+  // 3. Хүснэгтийн жагсаалтад харагдах текстийг шинэчлэв
   const categoryLabels: Record<string, string> = {
-    account: "Аккаунт",
-    topup: "Цэнэглэлт",
+    admin_acc: "Admin Acc",
+    paid_post: "Төлбөртэй post",
     rent: "Түрээс",
   };
 
@@ -385,7 +387,7 @@ export default function AdminPage() {
                       <select
                         value={formData.category}
                         onChange={(e) =>
-                          setFormData({ ...formData, category: e.target.value as "account" | "topup" | "rent" })
+                          setFormData({ ...formData, category: e.target.value as "admin_acc" | "paid_post" | "rent" })
                         }
                         className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-sm text-slate-200 focus:outline-none focus:border-blue-500/40 focus:ring-1 focus:ring-blue-500/20 transition-all"
                       >
@@ -673,7 +675,7 @@ export default function AdminPage() {
                         </span>
                       </td>
                       <td className="px-5 py-3.5 text-sm text-slate-200 font-medium">
-                        {new Intl.NumberFormat("mn-MN").format(product.basePrice)} ₮
+                                                {new Intl.NumberFormat("mn-MN").format(product.basePrice)} ₮
                       </td>
                       <td className="px-5 py-3.5 text-right">
                         <button
@@ -695,3 +697,5 @@ export default function AdminPage() {
     </div>
   );
 }
+
+                      
