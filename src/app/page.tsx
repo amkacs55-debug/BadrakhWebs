@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Search, SlidersHorizontal, MessageCircle, BadgeCheck, Loader2 } from "lucide-react";
 
-// 1. Таны Фэйсбүүк профайл эсвэл Пэйж хуудасны линк (Энд солиорой)
+// 1. Таны Фэйсбүүк профайл эсвэл Пэйж хуудасны линк
 const ADMIN_FACEBOOK_LINK = "https://www.facebook.com/share/1ES4ks43Bp/";
 
 export interface Product {
@@ -99,7 +99,7 @@ export default function HomePage() {
             PUBG Mobile Аккаунт & <span className="text-blue-400">Түрээс</span>
           </h1>
           
-          {/* ⚡ ШИНЭЧЛЭГДСЭН: Нарийнхан урт Фэйсбүүк логотой Админтай холбогдох товчлуур */}
+          {/* ⚡ Админтай холбогдох - Нарийнхан урт Фэйсбүүк логотой товчлуур */}
           <a
             href={https://www.facebook.com/share/1ES4ks43Bp/}
             target="_blank"
