@@ -51,7 +51,7 @@ export default function Header() {
               {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
             <a
-              href="https://m.me/"
+              href="https://www.facebook.com/share/18zFCFvwCw/"
               target="_blank"
               rel="noopener noreferrer"
               className="p-2.5 rounded-xl bg-blue-600/15 border border-blue-500/30 text-blue-400 hover:bg-blue-600/25 hover:text-blue-300 transition-all duration-200"
