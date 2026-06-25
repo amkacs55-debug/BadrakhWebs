@@ -79,6 +79,12 @@ export default function HomePage() {
               Баталгаат холбоосууд
             </h2>
           </div>
+
+          {/* 🚀 ЗӨВЛӨМЖ ХЭСЭГ */}
+          <p className="text-[11px] text-center text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-lg py-2 px-3">
+            ⚠️ Messenger-ээрээ нэвтэрсний дараа баталгаат холбоос дээр дарна уу!
+          </p>
+
           <div className="flex flex-col gap-2.5">
             {CONTACTS.map((person, idx) => (
               <a
