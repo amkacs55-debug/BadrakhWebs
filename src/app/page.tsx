@@ -109,7 +109,7 @@ export default function HomePage() {
             { id: "all", label: "Бүгд" },
             { id: "account", label: "Admin Acc" },
             { id: "topup", label: "Төлбөртэй post" },
-            { id: "midman", label: "Мидман" },
+            { id: "midman", label: "Moderator Acc" },
           ].map((tab) => (
             <button
               key={tab.id}
