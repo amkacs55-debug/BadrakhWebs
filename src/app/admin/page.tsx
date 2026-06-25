@@ -22,7 +22,7 @@ interface ContactConfig {
 }
 
 const DEFAULT_CONTACTS: ContactConfig[] = [
-  { name: "Админ Бадрах", url: "https://m.me/Badrakhgamestore", phone: "" },
+  { name: "Админ Бадрах", url: "https://m.me/Badrakhgamestore.Admin", phone: "" },
   { name: "Мидман Төгөлдөр", url: "https://m.me/TuguldurKrx", phone: "" },
   { name: "Мидман Жаргалсайхан", url: "https://m.me/jargalsaikhan.official", phone: "" },
 ];
