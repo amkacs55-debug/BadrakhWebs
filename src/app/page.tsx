@@ -8,9 +8,9 @@ import type { Product } from "@/components/ProductCard";
 
 // 🚀 БАТАЛГААТ 3 АДМИН БОЛОН МИДМАНЫ ЛИНКҮҮД
 const CONTACTS = [
-  { name: "Админ Бадрах", url: "https://www.facebook.com/share/1ES4ks43Bp/" },
-  { name: "Мидман Төгөлдөр", url: "https://www.facebook.com/share/1btYKT6PTF/" },
-  { name: "Мидман Жаргалсайхан", url: "https://www.facebook.com/share/18zqJRJs2s/?mibextid=wwXIfr" },
+  { name: "Админ Бадрах", url: "https://m.me/Badrakhgamestore" },
+  { name: "Мидман Төгөлдөр", url: "https://m.me/TuguldurKrx" },
+  { name: "Мидман Жаргалсайхан", url: "https://m.me/jargalsaikhan.official" },
 ];
 
 export default function HomePage() {
