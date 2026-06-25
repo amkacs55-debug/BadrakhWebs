@@ -82,9 +82,9 @@ export default function HomePage() {
             🛡️ Баталгаат холбоосууд
           </div>
           
-          {/* 💡 m.me/ арын хэсэгт өөрсдийн жинхэнэ фэйсбүүк username-ийг бичээрэй */}
+          {/* 💡 Шууд хөтөч дээр чат нээх линкээр солив. username хэсгийг өөрийнхөөрөө солиорой */}
           <a
-            href="https://m.me/Badrakhgamestore.Admin" 
+            href="https://www.facebook.com/messages/t/badrakhgamestore.admin" 
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-between bg-gray-800/50 hover:bg-gray-800 border border-gray-700/50 rounded-xl px-4 py-3 transition group active:scale-[0.98]"
@@ -97,7 +97,7 @@ export default function HomePage() {
           </a>
 
           <a
-            href="https://m.me/TuguldurKrx"
+            href="https://www.facebook.com/messages/t/tuguldurkrx"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-between bg-gray-800/50 hover:bg-gray-800 border border-gray-700/50 rounded-xl px-4 py-3 transition group active:scale-[0.98]"
@@ -110,7 +110,7 @@ export default function HomePage() {
           </a>
 
           <a
-            href="https://m.me/jargalsaikhan.official"
+            href="https://www.facebook.com/messages/t/jargalsaikhan.official"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-between bg-gray-800/50 hover:bg-gray-800 border border-gray-700/50 rounded-xl px-4 py-3 transition group active:scale-[0.98]"
@@ -347,9 +347,9 @@ export default function HomePage() {
                   <p className="text-xl font-extrabold text-white">₮{selectedProduct.basePrice.toLocaleString()}</p>
                 </div>
                 
-                {/* Худалдан авах товч - Шууд Мессенжер рүү Jump хийнэ */}
+                {/* Худалдан авах товч - Шууд хөтөч дээр Facebook рүү Jump хийнэ */}
                 <a
-                  href={selectedProduct.messengerLink || "https://m.me/badrakh.username"}
+                  href={selectedProduct.messengerLink || "https://www.facebook.com/messages/t/badrakh.username"}
                   target="_blank"
                   rel="noopener noreferrer"
                   className={`px-6 py-3 rounded-xl font-bold text-sm text-white shadow-xl flex items-center gap-2 transition active:scale-[0.97] ${
