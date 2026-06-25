@@ -1,236 +1,369 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
-import { Search, MessageCircle, BadgeCheck, Loader2, ShieldCheck } from "lucide-react";
-import RentalModal from "@/components/RentalModal";
-import type { Product } from "@/components/ProductCard";
 
-// 🚀 БАТАЛГААТ 3 АДМИН БОЛОН МИДМАНЫ ЛИНКҮҮД
-const CONTACTS = [
-  { name: "Админ Бадрах", url: "https://www.facebook.com/messages/t/Badrakhgamestore.Admin" },
-  { name: "Мидман Төгөлдөр", url: "https://www.facebook.com/messages/t/TuguldurKrx" },
-  { name: "Мидман Жаргалсайхан", url: "https://www.facebook.com/messages/t/jargalsaikhan.official" },
-];
+interface Product {
+  id: number;
+  title: string;
+  gameId: string;
+  category: string;
+  status: string;
+  basePrice: number;
+  messengerLink: string;
+  imageUrls: string[];
+  tags: string[];
+  rent1h?: number | null;
+  rent12h?: number | null;
+  rent24h?: number | null;
+}
 
 export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [currentImgIdx, setCurrentImgIdx] = useState(0);
 
+  // Баазаас заруудыг татах
   useEffect(() => {
-    async function fetchProducts() {
-      try {
-        const res = await fetch("/api/products");
-        if (res.ok) {
-          const data = await res.json();
-          setProducts(data);
-        }
-      } catch (error) {
-        console.error("Дата татахад алдаа гарлаа:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
     fetchProducts();
   }, []);
 
-  const filteredProducts = products.filter((product) => {
-    const matchesTab = activeTab === "all" || product.category === activeTab;
-    const matchesSearch =
-      product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.gameId.includes(searchQuery);
-    return matchesTab && matchesSearch;
-  });
-
-  const statusLabels: Record<string, string> = {
-    available: "Бэлэн байгаа",
-    sold: "Зарагдсан",
-    rented: "Түрээслэгдсэн",
+  const fetchProducts = async () => {
+    try {
+      const res = await fetch("/api/products");
+      if (res.ok) {
+        const data = await res.json();
+        setProducts(data);
+      }
+    } catch (err) {
+      console.error("Заруудыг татахад алдаа гарлаа:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // ID хуулах функц
+  const handleCopyId = (id: string) => {
+    navigator.clipboard.writeText(id);
+    alert("Тоглоомын ID амжилттай хуулагдлаа: " + id);
+  };
+
+  // Шүүлтүүр хийх (Хайлт болон Ангилал)
+  const filteredProducts = products.filter((product) => {
+    const matchesCategory =
+      selectedCategory === "all" || product.category === selectedCategory;
+    const matchesSearch =
+      product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.gameId.includes(searchQuery) ||
+      product.tags?.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    return matchesCategory && matchesSearch;
+  });
+
   return (
-    <div className="min-h-screen bg-[#060B18] text-slate-100 pb-12">
-      
-      {/* HEADER */}
-      <header className="sticky top-0 z-50 backdrop-blur-md bg-[#060B18]/80 border-b border-slate-800/40">
-        <div className="max-w-md mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-base tracking-tight text-white">
-              Badrakh MN
-            </span>
-            <span className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-md uppercase tracking-wider">
-              <BadgeCheck className="w-3 h-3 fill-blue-400 text-[#060B18]" />
-              Verified
-            </span>
-          </div>
+    <div className="min-h-screen bg-gray-950 text-gray-100 font-sans pb-12 selection:bg-blue-600 selection:text-white">
+      {/* Дээд хэсэг / Navbar */}
+      <div className="max-w-4xl mx-auto px-4 pt-6 flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          {/* 💡 ЭНДЭЭС САЙТЫНХАА ГАРЧГИЙГ СОЛИОРОЙ */}
+          <h1 className="text-xl font-bold tracking-tight text-white">Badrakh MN</h1>
+          <span className="bg-blue-500/10 text-blue-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-500/20 flex items-center gap-1">
+            ✓ VERIFIED
+          </span>
         </div>
-      </header>
+      </div>
 
-      <main className="max-w-md mx-auto px-4 pt-6 space-y-6">
-        
-        {/* 🚀 3 АДМИН / МИДМАНЫ ТОВЧЛУУР ХЭСЭГ */}
-        <div className="bg-slate-900/40 border border-slate-800/60 p-4 rounded-2xl space-y-3 shadow-xl">
-          <div className="flex items-center justify-center gap-2 mb-1">
-            <ShieldCheck className="w-5 h-5 text-emerald-400" />
-            <h2 className="text-sm font-bold text-slate-200 tracking-wide uppercase">
-              Баталгаат холбоосууд
-            </h2>
+      <div className="max-w-md mx-auto px-4 mt-6 space-y-6">
+        {/* Баталгаат Холбоосууд */}
+        <div className="bg-gray-900/60 backdrop-blur-md p-5 rounded-2xl border border-gray-800/80 space-y-3 shadow-xl">
+          <div className="flex items-center gap-2 text-xs font-semibold text-emerald-400 tracking-wider uppercase mb-1">
+            🛡️ Баталгаат холбоосууд
           </div>
-          <div className="flex flex-col gap-2.5">
-            {CONTACTS.map((person, idx) => (
-              <a
-                key={idx}
-                href={person.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-3 px-4 rounded-xl bg-[#1877F2]/10 border border-[#1877F2]/30 text-slate-200 hover:bg-[#1877F2]/20 hover:text-white hover:border-[#1877F2]/50 transition-all duration-200 flex items-center justify-center gap-2.5 text-sm font-semibold tracking-wide shadow-lg shadow-[#1877F2]/5"
-              >
-                <svg className="w-5 h-5 fill-current text-[#1877F2] shrink-0" viewBox="0 0 24 24">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                </svg>
-                {person.name}
-              </a>
-            ))}
-          </div>
-        </div>
+          
+          {/* 💡 m.me/ арын хэсэгт өөрсдийн жинхэнэ фэйсбүүк username-ийг бичээрэй */}
+          <a
+            href="https://m.me/Badrakhgamestore.Admin" 
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between bg-gray-800/50 hover:bg-gray-800 border border-gray-700/50 rounded-xl px-4 py-3 transition group active:scale-[0.98]"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm">f</div>
+              <span className="text-sm font-medium text-gray-200">Админ Бадрах</span>
+            </div>
+            <span className="text-xs text-gray-500 group-hover:text-blue-400 transition">Чатлах ➔</span>
+          </a>
 
-        {/* ТАВУУД / ФИЛТЕР */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
-          {[
-            { id: "all", label: "Бүгд" },
-            { id: "account", label: "Admin Acc" },
-            { id: "topup", label: "Төлбөртэй post" },
-            { id: "midman", label: "Мидман" },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap border transition-all duration-200 ${
-                activeTab === tab.id
-                  ? "bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-600/15"
-                  : "bg-slate-800/40 border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+          <a
+            href="https://m.me/TuguldurKrx"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between bg-gray-800/50 hover:bg-gray-800 border border-gray-700/50 rounded-xl px-4 py-3 transition group active:scale-[0.98]"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm">f</div>
+              <span className="text-sm font-medium text-gray-200">Мидман Төгөлдөр</span>
+            </div>
+            <span className="text-xs text-gray-500 group-hover:text-blue-400 transition">Чатлах ➔</span>
+          </a>
+
+          <a
+            href="https://m.me/jargalsaikhan.official"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between bg-gray-800/50 hover:bg-gray-800 border border-gray-700/50 rounded-xl px-4 py-3 transition group active:scale-[0.98]"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm">f</div>
+              <span className="text-sm font-medium text-gray-200">Мидман Жаргалсайхан</span>
+            </div>
+            <span className="text-xs text-gray-500 group-hover:text-blue-400 transition">Чатлах ➔</span>
+          </a>
         </div>
 
-        {/* ХАЙЛТЫН ХЭСЭГ */}
+        {/* Ангилал солих Табууд */}
+        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+          <button
+            onClick={() => setSelectedCategory("all")}
+            className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition ${
+              selectedCategory === "all" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "bg-gray-900 border border-gray-800 text-gray-400 hover:text-gray-200"
+            }`}
+          >
+            Бүгд
+          </button>
+          <button
+            onClick={() => setSelectedCategory("account")}
+            className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition ${
+              selectedCategory === "account" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "bg-gray-900 border border-gray-800 text-gray-400 hover:text-gray-200"
+            }`}
+          >
+            Admin Acc
+          </button>
+          <button
+            onClick={() => setSelectedCategory("topup")}
+            className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition ${
+              selectedCategory === "topup" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "bg-gray-900 border border-gray-800 text-gray-400 hover:text-gray-200"
+            }`}
+          >
+            Төлбөртэй post
+          </button>
+          <button
+            onClick={() => setSelectedCategory("rent")}
+            className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition ${
+              selectedCategory === "rent" ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "bg-gray-900 border border-gray-800 text-gray-400 hover:text-gray-200"
+            }`}
+          >
+            Түрээс (Rent)
+          </button>
+        </div>
+
+        {/* Хайлтын хэсэг */}
         <div className="relative">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+          <span className="absolute inset-y-0 left-4 flex items-center text-gray-500 text-sm">🔍</span>
           <input
             type="text"
             placeholder="ID болон гарчигаар хайх..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-900/60 border border-slate-800/80 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/40 focus:ring-1 focus:ring-blue-500/20 transition-all"
+            className="w-full bg-gray-900 border border-gray-800/80 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition shadow-inner"
           />
         </div>
 
-        {/* ЖАГСААЛТ */}
+        {/* Заруудын Жагсаалт (Grid) */}
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 text-slate-500 gap-2">
-            <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
-            <span className="text-xs">Уншиж байна...</span>
-          </div>
+          <div className="text-center text-gray-500 py-12 text-sm">Уншиж байна...</div>
         ) : filteredProducts.length === 0 ? (
-          <div className="text-center py-16 text-sm text-slate-500">
-            Зар одоогоор олдсонгүй.
-          </div>
+          <div className="text-center text-gray-500 py-12 text-sm">Зар одоогоор олдсонгүй.</div>
         ) : (
-          <div className="grid grid-cols-1 gap-5">
+          <div className="grid grid-cols-1 gap-4">
             {filteredProducts.map((product) => (
               <div
                 key={product.id}
-                onClick={() => setSelectedProduct(product)}
-                className="bg-[#0F172A] border border-slate-800/60 rounded-2xl overflow-hidden shadow-xl cursor-pointer hover:border-slate-700/80 hover:bg-slate-800/40 transition-all"
+                onClick={() => {
+                  setSelectedProduct(product);
+                  setCurrentImgIdx(0);
+                }}
+                className="bg-gray-900 border border-gray-800/60 rounded-2xl overflow-hidden cursor-pointer hover:border-gray-700 transition duration-200 group flex flex-col shadow-lg"
               >
-                <div className="relative aspect-[16/10] w-full bg-slate-950">
-                  {product.imageUrls && product.imageUrls.length > 0 ? (
-                    <Image
+                {/* Зураг */}
+                <div className="relative aspect-[16/9] w-full bg-gray-950 overflow-hidden">
+                  {product.imageUrls?.[0] ? (
+                    <img
                       src={product.imageUrls[0]}
                       alt={product.title}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 480px) 100vw"
+                      className="w-full h-full object-cover group-hover:scale-[1.02] transition duration-300"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-xs text-slate-600">
-                      Зураггүй
-                    </div>
+                    <div className="w-full h-full flex items-center justify-center text-xs text-gray-600">Зураггүй</div>
                   )}
-
-                  <div className="absolute top-3 right-3">
-                    <span className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border backdrop-blur-md ${
-                      product.status === "available"
-                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                        : "bg-slate-700/20 text-slate-400 border-slate-600/30"
-                    }`}>
-                      ● {statusLabels[product.status] || product.status}
-                    </span>
+                  {/* Төлөв бэдж */}
+                  <div className="absolute top-3 left-3">
+                    {product.status === "available" ? (
+                      <span className="bg-emerald-500/20 text-emerald-400 text-[11px] font-bold px-2.5 py-1 rounded-lg border border-emerald-500/30 flex items-center gap-1 backdrop-blur-md">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Бэлэн байгаа
+                      </span>
+                    ) : (
+                      <span className="bg-gray-800/80 text-gray-400 text-[11px] font-bold px-2.5 py-1 rounded-lg border border-gray-700/50 backdrop-blur-md">
+                        Зарагдсан
+                      </span>
+                    )}
                   </div>
                 </div>
 
-                <div className="p-4 space-y-3">
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-bold text-base text-slate-100 truncate pr-2">
-                        {product.title}
-                      </h3>
-                      <span className="text-xs text-slate-500 font-mono shrink-0">
-                        ID: {product.gameId}
-                      </span>
-                    </div>
-
-                    {product.tags && product.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 pt-1">
-                        {product.tags.map((tag, i) => (
-                          <span key={i} className="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-md">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
+                {/* Зарын мэдээлэл */}
+                <div className="p-4 flex justify-between items-start gap-2">
+                  <div>
+                    <h3 className="font-bold text-gray-100 group-hover:text-blue-400 transition line-clamp-1">{product.title}</h3>
+                    <p className="text-xs text-gray-500 mt-0.5">ID: {product.gameId}</p>
                   </div>
-
-                  <div className="pt-2 border-t border-slate-800/60 flex items-end justify-between">
-                    <div>
-                      <span className="text-[10px] text-slate-500 block uppercase font-medium tracking-wider">
-                        Үндсэн үнэ
-                      </span>
-                      <span className="text-base font-black text-blue-400">
-                        {new Intl.NumberFormat("mn-MN").format(product.basePrice)} ₮
-                      </span>
-                    </div>
+                  <div className="text-right">
+                    <p className="text-xs text-gray-500 uppercase tracking-wider text-[10px] font-semibold">Нийт үнэ</p>
+                    <p className="font-bold text-blue-400 text-base">₮{product.basePrice.toLocaleString()}</p>
                   </div>
-
-                  {/* КАРТАН ДЭЭРХ ХОЛБОГДОХ ТОВЧЛУУР */}
-                  <a
-                    href={product.messengerLink || CONTACTS[0].url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="w-full mt-2 py-2.5 rounded-xl bg-slate-800 text-slate-200 hover:bg-blue-600 hover:text-white font-bold text-xs transition-all duration-200 flex items-center justify-center gap-1.5 border border-slate-700/40 hover:border-blue-500"
-                  >
-                    <MessageCircle className="w-4 h-4" />
-                    Холбогдох
-                  </a>
                 </div>
               </div>
             ))}
           </div>
         )}
-      </main>
+      </div>
 
+      {/* Дэлгэрэнгүй харах Поп-ап Цонх (Modal) */}
       {selectedProduct && (
-        <RentalModal
-          product={selectedProduct}
-          onClose={() => setSelectedProduct(null)}
-        />
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
+          <div className="bg-gray-900 border-t sm:border border-gray-800 w-full max-w-lg rounded-t-2xl sm:rounded-2xl max-h-[92vh] overflow-y-auto flex flex-col shadow-2xl">
+            {/* Толгой хэсэг */}
+            <div className="p-4 border-b border-gray-800/60 flex justify-between items-start sticky top-0 bg-gray-900/95 backdrop-blur-md z-10">
+              <div>
+                <h2 className="text-lg font-bold text-white pr-6">{selectedProduct.title}</h2>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-xs text-gray-400">ID: {selectedProduct.gameId}</span>
+                  <button
+                    onClick={() => handleCopyId(selectedProduct.gameId)}
+                    className="text-[10px] bg-gray-800 hover:bg-gray-700 text-blue-400 px-2 py-0.5 rounded border border-gray-700 font-medium transition"
+                  >
+                    ID Хуулах
+                  </button>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedProduct(null)}
+                className="w-8 h-8 rounded-full bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white flex items-center justify-center text-sm transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Зургийн цомог (Slider) */}
+            <div className="relative bg-gray-950 aspect-[16/10] w-full flex items-center justify-center group">
+              {selectedProduct.imageUrls && selectedProduct.imageUrls.length > 0 ? (
+                <>
+                  <img
+                    src={selectedProduct.imageUrls[currentImgIdx]}
+                    alt=""
+                    className="w-full h-full object-contain"
+                  />
+                  {selectedProduct.imageUrls.length > 1 && (
+                    <>
+                      <button
+                        onClick={() => setCurrentImgIdx((prev) => (prev === 0 ? selectedProduct.imageUrls.length - 1 : prev - 1))}
+                        className="absolute left-3 w-8 h-8 rounded-full bg-black/50 hover:bg-black/80 text-white text-sm flex items-center justify-center transition"
+                      >
+                        ‹
+                      </button>
+                      <button
+                        onClick={() => setCurrentImgIdx((prev) => (prev === selectedProduct.imageUrls.length - 1 ? 0 : prev + 1))}
+                        className="absolute right-3 w-8 h-8 rounded-full bg-black/50 hover:bg-black/80 text-white text-sm flex items-center justify-center transition"
+                      >
+                        ›
+                      </button>
+                      <div className="absolute bottom-3 right-3 bg-black/60 text-[11px] font-medium px-2 py-0.5 rounded-md text-gray-300 backdrop-blur-sm">
+                        {currentImgIdx + 1} / {selectedProduct.imageUrls.length}
+                      </div>
+                    </>
+                  )}
+                </>
+              ) : (
+                <div className="text-gray-600 text-xs">Зураггүй</div>
+              )}
+            </div>
+
+            {/* Зургийн жижиг Thumbnail-ууд */}
+            {selectedProduct.imageUrls && selectedProduct.imageUrls.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto p-4 bg-gray-950/40 border-b border-gray-800/40 no-scrollbar">
+                {selectedProduct.imageUrls.map((url, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentImgIdx(idx)}
+                    className={`w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 border-2 transition ${
+                      idx === currentImgIdx ? "border-blue-500 scale-95" : "border-transparent opacity-60"
+                    }`}
+                  >
+                    <img src={url} alt="" className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Мэдээлэл ба Үнийн хэсэг */}
+            <div className="p-5 space-y-4 flex-1">
+              {/* Хэрэв Түрээсийн ангилал бол цагийн үнүүдийг харуулна */}
+              {selectedProduct.category === "rent" ? (
+                <div className="bg-gray-950 p-4 rounded-xl border border-gray-800 space-y-2">
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">⏰ Түрээслэх үнийн тариф:</p>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="bg-gray-900/50 p-2 rounded-lg border border-gray-800/60">
+                      <div className="text-[10px] text-gray-500">1 цаг</div>
+                      <div className="text-xs font-bold text-blue-400">₮{selectedProduct.rent1h?.toLocaleString() || "0"}</div>
+                    </div>
+                    <div className="bg-gray-900/50 p-2 rounded-lg border border-gray-800/60">
+                      <div className="text-[10px] text-gray-500">12 цаг</div>
+                      <div className="text-xs font-bold text-blue-400">₮{selectedProduct.rent12h?.toLocaleString() || "0"}</div>
+                    </div>
+                    <div className="bg-gray-900/50 p-2 rounded-lg border border-gray-800/60">
+                      <div className="text-[10px] text-gray-500">24 цаг</div>
+                      <div className="text-xs font-bold text-blue-400">₮{selectedProduct.rent24h?.toLocaleString() || "0"}</div>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {/* Тагууд */}
+              {selectedProduct.tags && selectedProduct.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedProduct.tags.map((tag, i) => (
+                    <span key={i} className="bg-gray-800/80 text-gray-400 text-[11px] px-2.5 py-0.5 rounded-md border border-gray-700/40">
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Нийт үндсэн үнэ харуулах */}
+              <div className="flex justify-between items-center bg-gray-950/60 border border-gray-800 p-4 rounded-xl">
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider text-[10px] font-semibold">Үндсэн үнэ</p>
+                  <p className="text-xl font-extrabold text-white">₮{selectedProduct.basePrice.toLocaleString()}</p>
+                </div>
+                
+                {/* Худалдан авах товч - Шууд Мессенжер рүү Jump хийнэ */}
+                <a
+                  href={selectedProduct.messengerLink || "https://m.me/badrakh.username"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`px-6 py-3 rounded-xl font-bold text-sm text-white shadow-xl flex items-center gap-2 transition active:scale-[0.97] ${
+                    selectedProduct.status === "available"
+                      ? "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-blue-600/10"
+                      : "bg-gray-800 border border-gray-700 text-gray-500 pointer-events-none"
+                  }`}
+                >
+                  💬 {selectedProduct.category === "rent" ? "Түрээслэх" : "Худалдан авах"}
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
