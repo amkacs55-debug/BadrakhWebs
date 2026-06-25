@@ -35,6 +35,9 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<"products" | "settings">("products");
 
   const [products, setProducts] = useState<Product[]>([]);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+
+  // Form fields
   const [title, setTitle] = useState("");
   const [gameId, setGameId] = useState("");
   const [category, setCategory] = useState("account");
@@ -47,20 +50,15 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Тохиргоо
+  // Settings
   const [contacts, setContacts] = useState<ContactConfig[]>(DEFAULT_CONTACTS);
   const [settingsSaved, setSettingsSaved] = useState(false);
 
   useEffect(() => {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setIsLoggedIn(true);
-        fetchProducts();
-        loadSettings();
-      } else {
-        setIsLoggedIn(false);
-      }
+      if (user) { setIsLoggedIn(true); fetchProducts(); loadSettings(); }
+      else setIsLoggedIn(false);
     };
     checkUser();
   }, []);
@@ -82,27 +80,36 @@ export default function AdminPage() {
     e.preventDefault();
     setLoginError("");
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      setLoginError("Имэйл эсвэл нууц үг буруу байна: " + error.message);
-    } else if (data.user) {
-      setIsLoggedIn(true);
-      fetchProducts();
-      loadSettings();
-    }
+    if (error) setLoginError("Имэйл эсвэл нууц үг буруу: " + error.message);
+    else if (data.user) { setIsLoggedIn(true); fetchProducts(); loadSettings(); }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setIsLoggedIn(false);
-  };
+  const handleLogout = async () => { await supabase.auth.signOut(); setIsLoggedIn(false); };
 
   const fetchProducts = async () => {
     try {
       const res = await fetch("/api/products");
       if (res.ok) setProducts(await res.json());
-    } catch (err) {
-      console.error(err);
-    }
+    } catch {}
+  };
+
+  const resetForm = () => {
+    setTitle(""); setGameId(""); setCategory("account"); setStatus("available");
+    setBasePrice(""); setMessengerLink(""); setTagsInput(""); setImages([]);
+    setEditingProduct(null); setError("");
+  };
+
+  const startEdit = (product: Product) => {
+    setEditingProduct(product);
+    setTitle(product.title);
+    setGameId(product.gameId);
+    setCategory(product.category);
+    setStatus(product.status);
+    setBasePrice(String(product.basePrice));
+    setMessengerLink(product.messengerLink || "");
+    setTagsInput((product.tags || []).join(", "));
+    setImages(product.imageUrls || []);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -111,25 +118,17 @@ export default function AdminPage() {
     setError("");
     const files = Array.from(e.target.files);
     try {
-      const uploadPromises = files.map(async (file) => {
+      const urls = await Promise.all(files.map(async (file) => {
         const formData = new FormData();
         formData.append("file", file);
         formData.append("upload_preset", "pubg_preset");
-        const res = await fetch("https://api.cloudinary.com/v1_1/drxjlkcdq/image/upload", {
-          method: "POST",
-          body: formData,
-        });
-        if (!res.ok) throw new Error("Cloudinary руу хуулж чадсангүй");
-        const data = await res.json();
-        return data.secure_url;
-      });
-      const uploadedUrls = await Promise.all(uploadPromises);
-      setImages((prev) => [...prev, ...uploadedUrls.filter(Boolean)]);
-    } catch {
-      setError("Зураг хуулахад алдаа гарлаа.");
-    } finally {
-      setUploading(false);
-    }
+        const res = await fetch("https://api.cloudinary.com/v1_1/drxjlkcdq/image/upload", { method: "POST", body: formData });
+        if (!res.ok) throw new Error();
+        return (await res.json()).secure_url;
+      }));
+      setImages((prev) => [...prev, ...urls.filter(Boolean)]);
+    } catch { setError("Зураг хуулахад алдаа гарлаа."); }
+    finally { setUploading(false); }
   };
 
   const removeImage = (idx: number) => setImages((prev) => prev.filter((_, i) => i !== idx));
@@ -139,21 +138,29 @@ export default function AdminPage() {
     setLoading(true);
     setError("");
     const tags = tagsInput.split(",").map((t) => t.trim()).filter(Boolean);
+    const body = { title, gameId, category, status, basePrice: Number(basePrice), messengerLink, imageUrls: images, tags };
+
     try {
-      const res = await fetch("/api/products", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, gameId, category, status, basePrice: Number(basePrice), messengerLink, imageUrls: images, tags }),
-      });
+      let res;
+      if (editingProduct) {
+        res = await fetch(`/api/products/${editingProduct.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+      } else {
+        res = await fetch("/api/products", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+      }
       if (!res.ok) throw new Error();
-      setTitle(""); setGameId(""); setBasePrice(""); setMessengerLink(""); setTagsInput(""); setImages([]);
+      resetForm();
       fetchProducts();
-      alert("Зар амжилттай нийтлэгдлээ!");
-    } catch {
-      setError("Зар нэмэхэд алдаа гарлаа.");
-    } finally {
-      setLoading(false);
-    }
+      alert(editingProduct ? "Амжилттай шинэчлэгдлээ!" : "Зар амжилттай нийтлэгдлээ!");
+    } catch { setError("Хадгалахад алдаа гарлаа."); }
+    finally { setLoading(false); }
   };
 
   const handleDelete = async (id: number) => {
@@ -163,34 +170,28 @@ export default function AdminPage() {
       if (!res.ok) throw new Error();
       fetchProducts();
       alert("Амжилттай устгагдлаа!");
-    } catch {
-      alert("Устгаж чадсангүй.");
-    }
+    } catch { alert("Устгаж чадсангүй."); }
   };
 
-  if (isLoggedIn === null) {
-    return <div className="min-h-screen bg-gray-950 flex items-center justify-center text-gray-400">Уншиж байна...</div>;
-  }
+  if (isLoggedIn === null) return <div className="min-h-screen bg-gray-950 flex items-center justify-center text-gray-400">Уншиж байна...</div>;
 
-  if (!isLoggedIn) {
-    return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
-        <form onSubmit={handleLogin} className="bg-gray-900 p-8 rounded-2xl border border-gray-800 w-full max-w-md space-y-6 shadow-2xl">
-          <h2 className="text-2xl font-bold text-white text-center">Админ Нэвтрэх</h2>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Имэйл</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500" required />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Нууц үг</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500" required />
-          </div>
-          {loginError && <p className="text-red-500 text-sm text-center">{loginError}</p>}
-          <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition">Нэвтрэх</button>
-        </form>
-      </div>
-    );
-  }
+  if (!isLoggedIn) return (
+    <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
+      <form onSubmit={handleLogin} className="bg-gray-900 p-8 rounded-2xl border border-gray-800 w-full max-w-md space-y-6 shadow-2xl">
+        <h2 className="text-2xl font-bold text-white text-center">Админ Нэвтрэх</h2>
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">Имэйл</label>
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500" required />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">Нууц үг</label>
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500" required />
+        </div>
+        {loginError && <p className="text-red-500 text-sm text-center">{loginError}</p>}
+        <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition">Нэвтрэх</button>
+      </form>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100 p-4 md:p-6">
@@ -200,26 +201,26 @@ export default function AdminPage() {
           <button onClick={handleLogout} className="text-sm bg-red-900/30 hover:bg-red-900/50 text-red-400 px-4 py-2 rounded-lg border border-red-900/50 transition">Гарах</button>
         </div>
 
-        {/* TABS */}
         <div className="flex gap-2">
-          <button
-            onClick={() => setActiveTab("products")}
-            className={`px-5 py-2 rounded-lg text-sm font-semibold transition ${activeTab === "products" ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:text-white"}`}
-          >
-            Зар нэмэх
-          </button>
-          <button
-            onClick={() => setActiveTab("settings")}
-            className={`px-5 py-2 rounded-lg text-sm font-semibold transition ${activeTab === "settings" ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:text-white"}`}
-          >
-            Тохиргоо
-          </button>
+          {(["products", "settings"] as const).map((tab) => (
+            <button key={tab} onClick={() => setActiveTab(tab)}
+              className={`px-5 py-2 rounded-lg text-sm font-semibold transition ${activeTab === tab ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:text-white"}`}>
+              {tab === "products" ? "Зар" : "Тохиргоо"}
+            </button>
+          ))}
         </div>
 
-        {/* PRODUCTS TAB */}
         {activeTab === "products" && (
           <>
+            {/* FORM */}
             <form onSubmit={handleSubmit} className="bg-gray-900 p-6 rounded-xl border border-gray-800 space-y-4">
+              {editingProduct && (
+                <div className="flex items-center gap-2 px-4 py-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                  <span className="text-yellow-400 text-sm font-semibold">✏️ Засварлаж байна: {editingProduct.title}</span>
+                  <button type="button" onClick={resetForm} className="ml-auto text-xs text-gray-400 hover:text-white">Цуцлах</button>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Гарчиг *</label>
@@ -255,7 +256,7 @@ export default function AdminPage() {
                   <input type="number" value={basePrice} onChange={(e) => setBasePrice(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500" required />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Холбогдох Messenger Линк</label>
+                  <label className="block text-sm font-medium mb-1">Messenger Линк</label>
                   <input type="url" value={messengerLink} onChange={(e) => setMessengerLink(e.target.value)} placeholder="https://m.me/username" className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500" />
                 </div>
               </div>
@@ -284,13 +285,14 @@ export default function AdminPage() {
               {error && <p className="text-red-500 text-sm">{error}</p>}
 
               <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setImages([])} className="bg-gray-800 hover:bg-gray-700 text-gray-200 font-medium px-4 py-2 rounded-lg transition">Цуцлах</button>
+                <button type="button" onClick={resetForm} className="bg-gray-800 hover:bg-gray-700 text-gray-200 font-medium px-4 py-2 rounded-lg transition">Цуцлах</button>
                 <button type="submit" disabled={loading || uploading} className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg transition disabled:opacity-50">
-                  {loading ? "Нийтэлж байна..." : "Нийтлэх"}
+                  {loading ? "Хадгалж байна..." : editingProduct ? "Шинэчлэх" : "Нийтлэх"}
                 </button>
               </div>
             </form>
 
+            {/* PRODUCT LIST */}
             <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[600px]">
                 <thead>
@@ -306,7 +308,9 @@ export default function AdminPage() {
                     <tr key={product.id} className="hover:bg-gray-800/30 transition">
                       <td className="p-4 flex items-center gap-3">
                         <div className="w-12 h-12 rounded-lg bg-gray-800 overflow-hidden flex-shrink-0">
-                          {product.imageUrls?.[0] ? <img src={product.imageUrls[0]} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-xs text-gray-600">No Img</div>}
+                          {product.imageUrls?.[0]
+                            ? <img src={product.imageUrls[0]} alt="" className="w-full h-full object-cover" />
+                            : <div className="w-full h-full flex items-center justify-center text-xs text-gray-600">No Img</div>}
                         </div>
                         <div>
                           <div className="font-semibold text-gray-200">{product.title}</div>
@@ -316,7 +320,10 @@ export default function AdminPage() {
                       <td className="p-4 capitalize text-gray-400">{product.category}</td>
                       <td className="p-4 font-medium text-blue-400">₮{product.basePrice.toLocaleString()}</td>
                       <td className="p-4 text-center">
-                        <button onClick={() => handleDelete(product.id)} className="bg-red-950/40 hover:bg-red-900/60 border border-red-900/50 text-red-400 px-3 py-1.5 rounded-lg transition text-xs font-medium">Устгах</button>
+                        <div className="flex items-center justify-center gap-2">
+                          <button onClick={() => startEdit(product)} className="bg-blue-950/40 hover:bg-blue-900/60 border border-blue-900/50 text-blue-400 px-3 py-1.5 rounded-lg transition text-xs font-medium">Засах</button>
+                          <button onClick={() => handleDelete(product.id)} className="bg-red-950/40 hover:bg-red-900/60 border border-red-900/50 text-red-400 px-3 py-1.5 rounded-lg transition text-xs font-medium">Устгах</button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -338,45 +345,26 @@ export default function AdminPage() {
                 <p className="text-sm font-semibold text-blue-400">{contact.name}</p>
                 <div>
                   <label className="block text-xs text-gray-400 mb-1">Messenger линк</label>
-                  <input
-                    type="text"
-                    value={contact.url}
-                    onChange={(e) => {
-                      const updated = [...contacts];
-                      updated[idx].url = e.target.value;
-                      setContacts(updated);
-                    }}
+                  <input type="text" value={contact.url}
+                    onChange={(e) => { const u = [...contacts]; u[idx].url = e.target.value; setContacts(u); }}
                     placeholder="https://m.me/username"
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
-                  />
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500" />
                 </div>
                 <div>
                   <label className="block text-xs text-gray-400 mb-1">Утасны дугаар</label>
-                  <input
-                    type="text"
-                    value={contact.phone}
-                    onChange={(e) => {
-                      const updated = [...contacts];
-                      updated[idx].phone = e.target.value;
-                      setContacts(updated);
-                    }}
+                  <input type="text" value={contact.phone}
+                    onChange={(e) => { const u = [...contacts]; u[idx].phone = e.target.value; setContacts(u); }}
                     placeholder="99001234"
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
-                  />
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500" />
                 </div>
               </div>
             ))}
-            <button
-              onClick={saveSettings}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2.5 rounded-lg transition"
-            >
+            <button onClick={saveSettings} className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2.5 rounded-lg transition">
               {settingsSaved ? "✓ Хадгалагдлаа!" : "Хадгалах"}
             </button>
-            <p className="text-xs text-gray-500">⚠️ Тохиргоо хадгалагдсан ч website-д автоматаар тусахгүй — page.tsx дотор CONTACTS-г шинэчлэх шаардлагатай.</p>
           </div>
         )}
       </div>
     </div>
   );
 }
-
