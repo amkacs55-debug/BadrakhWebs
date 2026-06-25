@@ -212,7 +212,7 @@ export default function HomePage() {
                   <a
                     href={
                       product.messengerLink ||
-                      (product.category === "midman"
+                      (String(product.category) === "midman"
                         ? CONTACTS[1].url
                         : CONTACTS[0].url)
                     }
@@ -240,3 +240,4 @@ export default function HomePage() {
     </div>
   );
 }
+
