@@ -8,7 +8,7 @@ import type { Product } from "@/components/ProductCard";
 
 // 🚀 БАТАЛГААТ 3 АДМИН БОЛОН МИДМАНЫ ЛИНКҮҮД
 const CONTACTS = [
-  { name: "Админ Бадрах", url: "https://m.me/Badrakhgamestore" },
+  { name: "Админ Бадрах", url: "https://m.me/Badrakhgamestore.Admin" },
   { name: "Мидман Төгөлдөр", url: "https://m.me/TuguldurKrx" },
   { name: "Мидман Жаргалсайхан", url: "https://m.me/jargalsaikhan.official" },
 ];
