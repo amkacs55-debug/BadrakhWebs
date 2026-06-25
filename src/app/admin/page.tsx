@@ -238,7 +238,7 @@ export default function AdminPage() {
                   <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500">
                     <option value="account">Admin Acc</option>
                     <option value="topup">Paid Post</option>
-                    <option value="midman">Мидман</option>
+                    <option value="midman">Moderator Acc</option>
                   </select>
                 </div>
                 <div>
