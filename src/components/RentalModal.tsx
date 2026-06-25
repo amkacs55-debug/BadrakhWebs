@@ -207,16 +207,14 @@ export default function RentalModal({ product, onClose }: RentalModalProps) {
               {images.length > 0 && (
                 <div className="px-5 pb-4">
                   <div
-                    className="relative w-full aspect-[16/9] rounded-xl overflow-hidden"
+                    className="relative w-full rounded-xl overflow-hidden"
                     onTouchStart={handleTouchStart}
                     onTouchEnd={handleTouchEnd}
                   >
-                    <Image
+                    <img
                       src={images[currentImageIndex]}
                       alt={`${product.title} - ${currentImageIndex + 1}`}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 100vw, 672px"
+                      className="w-full h-auto block rounded-xl"
                     />
 
                     {/* Navigation Arrows */}
@@ -375,4 +373,3 @@ export default function RentalModal({ product, onClose }: RentalModalProps) {
     </AnimatePresence>
   );
 }
-
