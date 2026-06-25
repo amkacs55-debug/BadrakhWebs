@@ -8,9 +8,9 @@ import type { Product } from "@/components/ProductCard";
 
 // 🚀 БАТАЛГААТ 3 АДМИН БОЛОН МИДМАНЫ ЛИНКҮҮД
 const CONTACTS = [
-  { name: "Админ Бадрах", url: "https://www.facebook.com/messages/t/Badrakhgamestore.Admin" },
-  { name: "Мидман Төгөлдөр", url: "https://www.facebook.com/messages/t/TuguldurKrx" },
-  { name: "Мидман Жаргалсайхан", url: "https://www.facebook.com/messages/t/jargalsaikhan.official" },
+  { name: "Админ Бадрах", url: "https://m.me/Badrakhgamestore.Admin" },
+  { name: "Мидман Төгөлдөр", url: "https://m.me/TuguldurKrx" },
+  { name: "Мидман Жаргалсайхан", url: "https://m.me/jargalsaikhan.official" },
 ];
 
 export default function HomePage() {
@@ -210,7 +210,12 @@ export default function HomePage() {
 
                   {/* КАРТАН ДЭЭРХ ХОЛБОГДОХ ТОВЧЛУУР */}
                   <a
-                    href={product.messengerLink || CONTACTS[0].url}
+                    href={
+                      product.messengerLink ||
+                      (product.category === "midman"
+                        ? CONTACTS[1].url
+                        : CONTACTS[0].url)
+                    }
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={(e) => e.stopPropagation()}
@@ -235,4 +240,3 @@ export default function HomePage() {
     </div>
   );
 }
-
