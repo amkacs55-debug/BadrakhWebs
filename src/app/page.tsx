@@ -229,31 +229,46 @@ export default function HomePage() {
 
       {/* POPUP */}
       {selectedProduct && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-end sm:items-center justify-center">
-          <div className="bg-[#0F172A] border border-slate-700/60 w-full max-w-lg rounded-t-3xl sm:rounded-2xl max-h-[95vh] overflow-y-auto shadow-2xl">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-end justify-center">
+          <div className="bg-[#0F172A] border border-slate-700/60 w-full max-w-lg rounded-t-3xl max-h-[95vh] overflow-y-auto shadow-2xl">
 
             {/* Толгой */}
-            <div className="p-4 border-b border-slate-800/80 flex justify-between items-start sticky top-0 bg-[#0F172A]/95 backdrop-blur-md z-30">
-              <div>
-                <h2 className="text-base font-bold text-white pr-6 leading-tight">{selectedProduct.title}</h2>
-                <div className="flex items-center gap-2 mt-1.5">
-                  <span className="text-xs text-slate-400 font-mono">ID: {selectedProduct.gameId}</span>
-                  <button onClick={() => handleCopyId(selectedProduct.gameId)}
-                    className="text-[10px] bg-slate-800 hover:bg-slate-700 text-blue-400 px-2 py-0.5 rounded flex items-center gap-1 transition border border-slate-700">
-                    <Copy className="w-3 h-3" /> Хуулах
-                  </button>
+            <div className="p-5 pb-3">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-lg font-bold text-white leading-tight">{selectedProduct.title}</h2>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <span className="text-xs text-slate-400 font-mono">ID: {selectedProduct.gameId}</span>
+                    <button onClick={() => handleCopyId(selectedProduct.gameId)}
+                      className="text-[10px] bg-slate-800 hover:bg-slate-700 text-blue-400 px-2 py-0.5 rounded flex items-center gap-1 transition border border-slate-700">
+                      <Copy className="w-3 h-3" /> ID Хуулах
+                    </button>
+                  </div>
                 </div>
+                <button onClick={() => setSelectedProduct(null)}
+                  className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition border border-slate-700/50 shrink-0">
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-              <button onClick={() => setSelectedProduct(null)}
-                className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition border border-slate-700/50">
-                <X className="w-4 h-4" />
-              </button>
+
+              {/* Статус */}
+              <div className="mt-3">
+                <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold border ${
+                  selectedProduct.status === "available"
+                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                    : selectedProduct.status === "sold"
+                    ? "bg-red-500/10 text-red-400 border-red-500/30"
+                    : "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                }`}>
+                  ● {selectedProduct.status === "available" ? "Бэлэн байгаа" : selectedProduct.status === "sold" ? "Зарагдсан" : "Түрээслэгдсэн"}
+                </span>
+              </div>
             </div>
 
-            {/* ЗУРГИЙН ЦОМОГ — байгалийн хэмжээгээр */}
+            {/* ЗУРГИЙН ЦОМОГ */}
             {selectedProduct.imageUrls && selectedProduct.imageUrls.length > 0 && (
               <>
-                <div className="relative w-full bg-slate-950 overflow-hidden group">
+                <div className="relative w-full bg-slate-950 overflow-hidden mx-0">
                   <img
                     src={selectedProduct.imageUrls[currentImgIdx]}
                     alt={selectedProduct.title}
@@ -287,11 +302,11 @@ export default function HomePage() {
 
                 {/* Thumbnail */}
                 {selectedProduct.imageUrls.length > 1 && (
-                  <div className="flex gap-2 overflow-x-auto p-3 bg-[#060B18] border-b border-slate-800/80 no-scrollbar">
+                  <div className="flex gap-2 overflow-x-auto px-4 py-3 no-scrollbar">
                     {selectedProduct.imageUrls.map((url, idx) => (
                       <button key={idx} onClick={() => setCurrentImgIdx(idx)}
-                        className={`relative w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all ${
-                          idx === currentImgIdx ? "border-blue-500" : "border-transparent opacity-50 hover:opacity-100"
+                        className={`relative w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 border-2 transition-all ${
+                          idx === currentImgIdx ? "border-blue-500" : "border-slate-700 opacity-50 hover:opacity-100"
                         }`}>
                         <Image src={url} alt="" fill className="object-cover" />
                       </button>
@@ -317,26 +332,28 @@ export default function HomePage() {
                 </div>
               )}
 
-              <div className="flex justify-between items-center bg-slate-900/50 border border-slate-800/80 p-4 rounded-xl">
+              {/* Үнэ */}
+              <div className="flex justify-between items-center bg-[#060B18] border border-slate-800/80 p-4 rounded-xl">
                 <div>
-                  <span className="text-[10px] text-slate-500 block uppercase font-bold tracking-wider mb-0.5">Үндсэн үнэ</span>
-                  <span className={`text-xl font-black ${selectedProduct.status === "available" ? "text-white" : "text-slate-500 line-through"}`}>
-                    ₮{selectedProduct.basePrice.toLocaleString()}
+                  <span className="text-[10px] text-slate-500 block uppercase font-bold tracking-wider mb-0.5">Нийт үнэ</span>
+                  <span className={`text-2xl font-black ${selectedProduct.status === "available" ? "text-white" : "text-slate-500 line-through"}`}>
+                    {new Intl.NumberFormat("mn-MN").format(selectedProduct.basePrice)} ₮
                   </span>
                 </div>
-
-                {selectedProduct.status === "available" ? (
-                  <a href={getContactUrl(selectedProduct)} target="_blank" rel="noopener noreferrer"
-                    className="px-6 py-3 rounded-xl font-bold text-sm text-white bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-600/20 transition active:scale-95 flex items-center gap-2">
-                    <MessageCircle className="w-4 h-4" />
-                    {selectedProduct.category === "rent" ? "Түрээслэх" : "Худалдан авах"}
-                  </a>
-                ) : (
-                  <button disabled className="px-6 py-3 rounded-xl font-bold text-sm bg-slate-800 border border-slate-700 text-slate-500 cursor-not-allowed">
-                    🔒 {selectedProduct.status === "sold" ? "ЗАРАГДСАН" : "ТҮРЭЭСЛЭГДСЭН"}
-                  </button>
-                )}
               </div>
+
+              {/* Товчлуур */}
+              {selectedProduct.status === "available" ? (
+                <a href={getContactUrl(selectedProduct)} target="_blank" rel="noopener noreferrer"
+                  className="w-full py-4 rounded-2xl font-bold text-base text-white bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-600/20 transition active:scale-95 flex items-center justify-center gap-2">
+                  <MessageCircle className="w-5 h-5" />
+                  {selectedProduct.category === "rent" ? "Түрээслэх" : "Худалдан авах"}
+                </a>
+              ) : (
+                <button disabled className="w-full py-4 rounded-2xl font-bold text-base bg-slate-800 border border-slate-700 text-slate-500 cursor-not-allowed flex items-center justify-center gap-2">
+                  🔒 {selectedProduct.status === "sold" ? "ЗАРАГДСАН" : "ТҮРЭЭСЛЭГДСЭН"}
+                </button>
+              )}
             </div>
           </div>
         </div>
